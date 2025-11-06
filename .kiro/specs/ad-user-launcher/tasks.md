@@ -97,7 +97,12 @@
   - Add observable collections for account management
   - _Requirements: 1.1, 1.3, 1.4, 1.5_
 
-- [ ] 7. Implement executable management ViewModels
+- [x] 7. Implement executable management ViewModels
+
+
+
+
+
   - Create ExecutableManagementViewModel with MVVM pattern
   - Add commands for adding, editing, and deleting executable configurations
   - Implement file browsing for executables and custom icons
