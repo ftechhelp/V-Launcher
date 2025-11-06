@@ -21,22 +21,29 @@
   - Add secure password handling with SecureString
   - _Requirements: 5.1, 5.2, 5.3, 5.5_
 
-- [x] 2.1 Write unit tests for credential encryption
+- [x] 2.1 Write unit tests for credential encryption in V-LauncherTests project
 
 
 
-  - Test encryption/decryption roundtrip operations
+  - Test encryption/decryption roundtrip operations in V-LauncherTests/Services
   - Verify DPAPI integration and error handling
   - _Requirements: 5.1, 5.2_
 
-- [ ] 3. Create data persistence layer
+- [x] 3. Create data persistence layer
+
+
+
+
+
   - Implement configuration repository for JSON-based storage
   - Add methods for saving and loading AD accounts and executable configurations
   - Implement configuration file management in AppData folder
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 3.1 Write unit tests for data persistence
-  - Test configuration serialization and deserialization
+- [x] 3.1 Write unit tests for data persistence in V-LauncherTests project
+
+
+  - Test configuration serialization and deserialization in V-LauncherTests/Services
   - Verify file system error handling
   - _Requirements: 4.1, 4.2, 4.4_
 
@@ -47,8 +54,8 @@
   - Add executable path validation
   - _Requirements: 2.2, 3.3, 3.4_
 
-- [ ] 4.1 Write unit tests for executable service
-  - Test icon extraction and caching logic
+- [ ] 4.1 Write unit tests for executable service in V-LauncherTests project
+  - Test icon extraction and caching logic in V-LauncherTests/Services
   - Verify executable path validation
   - _Requirements: 2.2, 3.3, 3.4_
 
@@ -59,8 +66,8 @@
   - Add process launch error handling and validation
   - _Requirements: 3.2, 3.5, 3.6_
 
-- [ ] 5.1 Write unit tests for process launcher
-  - Test process creation parameter validation
+- [ ] 5.1 Write unit tests for process launcher in V-LauncherTests project
+  - Test process creation parameter validation in V-LauncherTests/Services
   - Verify error handling for invalid credentials and paths
   - _Requirements: 3.5, 3.6_
 
@@ -113,8 +120,8 @@
   - Ensure proper resource cleanup and disposal
   - _Requirements: 3.5, 3.6, 4.4_
 
-- [ ] 12.1 Write integration tests
-  - Test complete workflows from UI to data persistence
+- [ ] 12.1 Write integration tests in V-LauncherTests project
+  - Test complete workflows from UI to data persistence in V-LauncherTests
   - Verify error handling across all components
   - _Requirements: 3.5, 3.6, 4.4_
 

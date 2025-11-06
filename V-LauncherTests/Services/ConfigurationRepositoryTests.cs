@@ -1,0 +1,271 @@
+using System.IO;
+using V_Launcher.Models;
+using V_Launcher.Services;
+
+namespace V_LauncherTests.Services;
+
+public class ConfigurationRepositoryTests : IDisposable
+{
+    private readonly string _testDirectory;
+    private readonly string _testConfigPath;
+    private readonly ConfigurationRepository _repository;
+
+    public ConfigurationRepositoryTests()
+    {
+        _testDirectory = Path.Combine(Path.GetTempPath(), "V-LauncherTests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(_testDirectory);
+        _testConfigPath = Path.Combine(_testDirectory, "test-config.json");
+        _repository = new ConfigurationRepository(_testConfigPath);
+    }
+
+    [Fact]
+    public async Task LoadConfigurationAsync_WhenFileDoesNotExist_ReturnsEmptyConfiguration()
+    {
+        // Act
+        var result = await _repository.LoadConfigurationAsync();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result.ADAccounts);
+        Assert.Empty(result.ExecutableConfigurations);
+        Assert.Equal("1.0", result.Version);
+    }
+
+    [Fact]
+    public async Task SaveConfigurationAsync_WithValidConfiguration_CreatesFile()
+    {
+        // Arrange
+        var configuration = new ApplicationConfiguration
+        {
+            ADAccounts = new List<ADAccount>
+            {
+                new ADAccount
+                {
+                    Id = Guid.NewGuid(),
+                    DisplayName = "Test Account",
+                    Username = "testuser",
+                    Domain = "testdomain",
+                    EncryptedPassword = new byte[] { 1, 2, 3, 4 }
+                }
+            }
+        };
+
+        // Act
+        await _repository.SaveConfigurationAsync(configuration);
+
+        // Assert
+        Assert.True(File.Exists(_testConfigPath));
+        var fileContent = await File.ReadAllTextAsync(_testConfigPath);
+        Assert.Contains("testuser", fileContent);
+        Assert.Contains("testdomain", fileContent);
+    }
+
+    [Fact]
+    public async Task LoadConfigurationAsync_AfterSaving_ReturnsCorrectData()
+    {
+        // Arrange
+        var originalAccount = new ADAccount
+        {
+            Id = Guid.NewGuid(),
+            DisplayName = "Test Account",
+            Username = "testuser",
+            Domain = "testdomain",
+            EncryptedPassword = new byte[] { 1, 2, 3, 4 }
+        };
+
+        var originalConfig = new ExecutableConfiguration
+        {
+            Id = Guid.NewGuid(),
+            DisplayName = "Test App",
+            ExecutablePath = @"C:\test\app.exe",
+            ADAccountId = originalAccount.Id,
+            Arguments = "--test"
+        };
+
+        var configuration = new ApplicationConfiguration
+        {
+            ADAccounts = new List<ADAccount> { originalAccount },
+            ExecutableConfigurations = new List<ExecutableConfiguration> { originalConfig }
+        };
+
+        // Act
+        await _repository.SaveConfigurationAsync(configuration);
+        var loadedConfiguration = await _repository.LoadConfigurationAsync();
+
+        // Assert
+        Assert.Single(loadedConfiguration.ADAccounts);
+        Assert.Single(loadedConfiguration.ExecutableConfigurations);
+
+        var loadedAccount = loadedConfiguration.ADAccounts.First();
+        Assert.Equal(originalAccount.Id, loadedAccount.Id);
+        Assert.Equal(originalAccount.DisplayName, loadedAccount.DisplayName);
+        Assert.Equal(originalAccount.Username, loadedAccount.Username);
+        Assert.Equal(originalAccount.Domain, loadedAccount.Domain);
+        Assert.Equal(originalAccount.EncryptedPassword, loadedAccount.EncryptedPassword);
+
+        var loadedConfig = loadedConfiguration.ExecutableConfigurations.First();
+        Assert.Equal(originalConfig.Id, loadedConfig.Id);
+        Assert.Equal(originalConfig.DisplayName, loadedConfig.DisplayName);
+        Assert.Equal(originalConfig.ExecutablePath, loadedConfig.ExecutablePath);
+        Assert.Equal(originalConfig.ADAccountId, loadedConfig.ADAccountId);
+        Assert.Equal(originalConfig.Arguments, loadedConfig.Arguments);
+    }
+
+    [Fact]
+    public async Task LoadAccountsAsync_ReturnsAccountsFromConfiguration()
+    {
+        // Arrange
+        var account = new ADAccount
+        {
+            Id = Guid.NewGuid(),
+            DisplayName = "Test Account",
+            Username = "testuser",
+            Domain = "testdomain"
+        };
+
+        var configuration = new ApplicationConfiguration
+        {
+            ADAccounts = new List<ADAccount> { account }
+        };
+
+        await _repository.SaveConfigurationAsync(configuration);
+
+        // Act
+        var accounts = await _repository.LoadAccountsAsync();
+
+        // Assert
+        Assert.Single(accounts);
+        Assert.Equal(account.Id, accounts.First().Id);
+    }
+
+    [Fact]
+    public async Task SaveAccountsAsync_UpdatesConfigurationWithAccounts()
+    {
+        // Arrange
+        var account = new ADAccount
+        {
+            Id = Guid.NewGuid(),
+            DisplayName = "Test Account",
+            Username = "testuser",
+            Domain = "testdomain"
+        };
+
+        // Act
+        await _repository.SaveAccountsAsync(new[] { account });
+
+        // Assert
+        var configuration = await _repository.LoadConfigurationAsync();
+        Assert.Single(configuration.ADAccounts);
+        Assert.Equal(account.Id, configuration.ADAccounts.First().Id);
+    }
+
+    [Fact]
+    public async Task LoadExecutableConfigurationsAsync_ReturnsConfigurationsFromStorage()
+    {
+        // Arrange
+        var config = new ExecutableConfiguration
+        {
+            Id = Guid.NewGuid(),
+            DisplayName = "Test App",
+            ExecutablePath = @"C:\test\app.exe",
+            ADAccountId = Guid.NewGuid()
+        };
+
+        var configuration = new ApplicationConfiguration
+        {
+            ExecutableConfigurations = new List<ExecutableConfiguration> { config }
+        };
+
+        await _repository.SaveConfigurationAsync(configuration);
+
+        // Act
+        var configurations = await _repository.LoadExecutableConfigurationsAsync();
+
+        // Assert
+        Assert.Single(configurations);
+        Assert.Equal(config.Id, configurations.First().Id);
+    }
+
+    [Fact]
+    public async Task SaveExecutableConfigurationsAsync_UpdatesConfigurationWithConfigurations()
+    {
+        // Arrange
+        var config = new ExecutableConfiguration
+        {
+            Id = Guid.NewGuid(),
+            DisplayName = "Test App",
+            ExecutablePath = @"C:\test\app.exe",
+            ADAccountId = Guid.NewGuid()
+        };
+
+        // Act
+        await _repository.SaveExecutableConfigurationsAsync(new[] { config });
+
+        // Assert
+        var configuration = await _repository.LoadConfigurationAsync();
+        Assert.Single(configuration.ExecutableConfigurations);
+        Assert.Equal(config.Id, configuration.ExecutableConfigurations.First().Id);
+    }
+
+    [Fact]
+    public async Task SaveConfigurationAsync_WithNullConfiguration_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _repository.SaveConfigurationAsync(null!));
+    }
+
+    [Fact]
+    public async Task LoadConfigurationAsync_WithCorruptedFile_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        await File.WriteAllTextAsync(_testConfigPath, "invalid json content");
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _repository.LoadConfigurationAsync());
+        Assert.Contains("Failed to deserialize configuration file", exception.Message);
+    }
+
+    [Fact]
+    public async Task SaveConfigurationAsync_WithReadOnlyFile_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        await File.WriteAllTextAsync(_testConfigPath, "{}");
+        File.SetAttributes(_testConfigPath, FileAttributes.ReadOnly);
+
+        var configuration = new ApplicationConfiguration();
+
+        try
+        {
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _repository.SaveConfigurationAsync(configuration));
+            Assert.Contains("Failed to write configuration file", exception.Message);
+        }
+        finally
+        {
+            // Cleanup
+            File.SetAttributes(_testConfigPath, FileAttributes.Normal);
+        }
+    }
+
+    public void Dispose()
+    {
+        _repository?.Dispose();
+        
+        if (Directory.Exists(_testDirectory))
+        {
+            try
+            {
+                // Remove read-only attributes if any
+                foreach (var file in Directory.GetFiles(_testDirectory, "*", SearchOption.AllDirectories))
+                {
+                    File.SetAttributes(file, FileAttributes.Normal);
+                }
+                Directory.Delete(_testDirectory, true);
+            }
+            catch
+            {
+                // Ignore cleanup errors in tests
+            }
+        }
+    }
+}
