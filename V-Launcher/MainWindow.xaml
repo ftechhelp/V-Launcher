@@ -20,6 +20,10 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         
         <!-- Data Templates for ViewModels -->
+        <DataTemplate DataType="{x:Type vm:LauncherViewModel}">
+            <views:LauncherView/>
+        </DataTemplate>
+        
         <DataTemplate DataType="{x:Type vm:CredentialManagementViewModel}">
             <views:CredentialManagementView/>
         </DataTemplate>
@@ -27,8 +31,6 @@
         <DataTemplate DataType="{x:Type vm:ExecutableManagementViewModel}">
             <views:ExecutableManagementView/>
         </DataTemplate>
-        
-        <!-- Add other view templates here as they are implemented -->
         
         <!-- Styles -->
         <Style x:Key="NavigationButtonStyle" TargetType="Button">

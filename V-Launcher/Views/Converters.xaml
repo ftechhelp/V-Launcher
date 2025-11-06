@@ -5,6 +5,9 @@
     <!-- Boolean to Visibility Converter -->
     <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
     
+    <!-- Inverse Boolean to Visibility Converter -->
+    <local:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+    
     <!-- Boolean to Edit Mode Text Converter -->
     <local:BoolToEditModeConverter x:Key="BoolToEditModeConverter"/>
     
