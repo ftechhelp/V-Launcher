@@ -133,7 +133,11 @@
   - Add account list display with edit and delete options
   - _Requirements: 1.1, 1.3, 1.4, 1.5, 5.4_
 
-- [ ] 10. Design and implement executable configuration UI
+- [x] 10. Design and implement executable configuration UI
+
+
+
+
   - Create WPF views for executable configuration management
   - Add forms for configuring executable paths, icons, and AD accounts
   - Implement file browser dialogs for executable and icon selection

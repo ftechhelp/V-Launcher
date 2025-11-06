@@ -115,7 +115,8 @@ public partial class MainViewModel : ViewModelBase
             await Task.WhenAll(
                 LauncherViewModel.LoadExecutablesCommand.ExecuteAsync(null),
                 CredentialManagementViewModel.LoadAccountsCommand.ExecuteAsync(null),
-                ExecutableManagementViewModel.LoadConfigurationsCommand.ExecuteAsync(null)
+                ExecutableManagementViewModel.LoadConfigurationsCommand.ExecuteAsync(null),
+                ExecutableManagementViewModel.InitializeAsync()
             );
 
             SetStatus("Application initialized successfully");

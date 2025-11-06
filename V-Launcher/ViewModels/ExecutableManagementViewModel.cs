@@ -74,7 +74,7 @@ public partial class ExecutableManagementViewModel : ViewModelBase
         ClearCustomIconCommand = new RelayCommand(ClearCustomIcon, () => !string.IsNullOrEmpty(CustomIconPath));
         BrowseWorkingDirectoryCommand = new RelayCommand(BrowseWorkingDirectory, CanBrowseFiles);
 
-        _ = LoadDataAsync();
+        // Don't call async methods in constructor - let MainViewModel handle initialization
     }
 
     public IAsyncRelayCommand AddConfigurationCommand { get; }
@@ -229,6 +229,14 @@ public partial class ExecutableManagementViewModel : ViewModelBase
     {
         await LoadAccountsAsync();
         await LoadConfigurationsAsync();
+    }
+
+    /// <summary>
+    /// Public method to initialize data loading - called by MainViewModel
+    /// </summary>
+    public async Task InitializeAsync()
+    {
+        await LoadDataAsync();
     }
 
     private void BrowseExecutable()

@@ -24,6 +24,10 @@
             <views:CredentialManagementView/>
         </DataTemplate>
         
+        <DataTemplate DataType="{x:Type vm:ExecutableManagementViewModel}">
+            <views:ExecutableManagementView/>
+        </DataTemplate>
+        
         <!-- Add other view templates here as they are implemented -->
         
         <!-- Styles -->
