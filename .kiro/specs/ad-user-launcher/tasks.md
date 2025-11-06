@@ -85,7 +85,12 @@
   - Verify error handling for invalid credentials and paths
   - _Requirements: 3.5, 3.6_
 
-- [ ] 6. Implement credential management ViewModels
+- [x] 6. Implement credential management ViewModels
+
+
+
+
+
   - Create CredentialManagementViewModel with MVVM pattern
   - Add commands for adding, editing, and deleting AD accounts
   - Implement password input validation and secure handling
