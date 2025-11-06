@@ -11,10 +11,12 @@ namespace V_Launcher.Tests.Services;
 public class CredentialServiceTests
 {
     private readonly CredentialService _credentialService;
+    private readonly TestConfigurationRepository _configurationRepository;
 
     public CredentialServiceTests()
     {
-        _credentialService = new CredentialService();
+        _configurationRepository = new TestConfigurationRepository();
+        _credentialService = new CredentialService(_configurationRepository);
     }
 
     [Fact]
@@ -206,5 +208,49 @@ public class CredentialServiceTests
         // But both should decrypt to the same password
         Assert.Equal(password, _credentialService.DecryptPassword(encrypted1));
         Assert.Equal(password, _credentialService.DecryptPassword(encrypted2));
+    }
+}
+
+/// <summary>
+/// Test implementation of IConfigurationRepository for unit testing
+/// </summary>
+public class TestConfigurationRepository : IConfigurationRepository
+{
+    private readonly ApplicationConfiguration _configuration = new();
+
+    public Task<IEnumerable<ADAccount>> LoadAccountsAsync()
+    {
+        return Task.FromResult(_configuration.ADAccounts.AsEnumerable());
+    }
+
+    public Task SaveAccountsAsync(IEnumerable<ADAccount> accounts)
+    {
+        _configuration.ADAccounts = accounts.ToList();
+        return Task.CompletedTask;
+    }
+
+    public Task<IEnumerable<ExecutableConfiguration>> LoadExecutableConfigurationsAsync()
+    {
+        return Task.FromResult(_configuration.ExecutableConfigurations.AsEnumerable());
+    }
+
+    public Task SaveExecutableConfigurationsAsync(IEnumerable<ExecutableConfiguration> configurations)
+    {
+        _configuration.ExecutableConfigurations = configurations.ToList();
+        return Task.CompletedTask;
+    }
+
+    public Task<ApplicationConfiguration> LoadConfigurationAsync()
+    {
+        return Task.FromResult(_configuration);
+    }
+
+    public Task SaveConfigurationAsync(ApplicationConfiguration configuration)
+    {
+        _configuration.ADAccounts = configuration.ADAccounts;
+        _configuration.ExecutableConfigurations = configuration.ExecutableConfigurations;
+        _configuration.Version = configuration.Version;
+        _configuration.LastSaved = configuration.LastSaved;
+        return Task.CompletedTask;
     }
 }

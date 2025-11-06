@@ -1,13 +1,5 @@
-﻿using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+﻿using System.Windows;
+using V_Launcher.ViewModels;
 
 namespace V_Launcher
 {
@@ -19,6 +11,18 @@ namespace V_Launcher
         public MainWindow()
         {
             InitializeComponent();
+        }
+
+        /// <summary>
+        /// Gets the MainViewModel from the DataContext
+        /// </summary>
+        public MainViewModel? ViewModel => DataContext as MainViewModel;
+
+        protected override void OnClosed(EventArgs e)
+        {
+            // Dispose the ViewModel when the window is closed
+            ViewModel?.Dispose();
+            base.OnClosed(e);
         }
     }
 }

@@ -10,24 +10,25 @@ namespace V_Launcher.Services;
 /// </summary>
 public class CredentialService : ICredentialService
 {
-    private readonly List<ADAccount> _accounts = new();
-    private readonly object _lockObject = new();
+    private readonly IConfigurationRepository _configurationRepository;
+
+    public CredentialService(IConfigurationRepository configurationRepository)
+    {
+        _configurationRepository = configurationRepository ?? throw new ArgumentNullException(nameof(configurationRepository));
+    }
 
     /// <summary>
     /// Retrieves all stored AD accounts
     /// </summary>
-    public Task<IEnumerable<ADAccount>> GetAccountsAsync()
+    public async Task<IEnumerable<ADAccount>> GetAccountsAsync()
     {
-        lock (_lockObject)
-        {
-            return Task.FromResult(_accounts.AsEnumerable());
-        }
+        return await _configurationRepository.LoadAccountsAsync();
     }
 
     /// <summary>
     /// Saves an AD account with encrypted password
     /// </summary>
-    public Task<ADAccount> SaveAccountAsync(ADAccount account, string plainPassword)
+    public async Task<ADAccount> SaveAccountAsync(ADAccount account, string plainPassword)
     {
         if (account == null)
             throw new ArgumentNullException(nameof(account));
@@ -38,38 +39,36 @@ public class CredentialService : ICredentialService
         // Encrypt the password
         account.EncryptedPassword = EncryptPassword(plainPassword);
 
-        lock (_lockObject)
+        var accounts = (await GetAccountsAsync()).ToList();
+        
+        // Remove existing account with same ID if it exists
+        var existingIndex = accounts.FindIndex(a => a.Id == account.Id);
+        if (existingIndex >= 0)
         {
-            // Remove existing account with same ID if it exists
-            var existingIndex = _accounts.FindIndex(a => a.Id == account.Id);
-            if (existingIndex >= 0)
-            {
-                _accounts[existingIndex] = account;
-            }
-            else
-            {
-                _accounts.Add(account);
-            }
+            accounts[existingIndex] = account;
+        }
+        else
+        {
+            accounts.Add(account);
         }
 
-        return Task.FromResult(account);
+        await _configurationRepository.SaveAccountsAsync(accounts);
+        return account;
     }
 
     /// <summary>
     /// Deletes an AD account by ID
     /// </summary>
-    public Task DeleteAccountAsync(Guid accountId)
+    public async Task DeleteAccountAsync(Guid accountId)
     {
-        lock (_lockObject)
+        var accounts = (await GetAccountsAsync()).ToList();
+        var accountToRemove = accounts.FirstOrDefault(a => a.Id == accountId);
+        
+        if (accountToRemove != null)
         {
-            var accountToRemove = _accounts.FirstOrDefault(a => a.Id == accountId);
-            if (accountToRemove != null)
-            {
-                _accounts.Remove(accountToRemove);
-            }
+            accounts.Remove(accountToRemove);
+            await _configurationRepository.SaveAccountsAsync(accounts);
         }
-
-        return Task.CompletedTask;
     }
 
     /// <summary>
