@@ -4,9 +4,140 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:V_Launcher"
+        xmlns:views="clr-namespace:V_Launcher.Views"
+        xmlns:vm="clr-namespace:V_Launcher.ViewModels"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="{Binding ApplicationTitle}" 
+        Height="700" 
+        Width="1000"
+        MinHeight="600"
+        MinWidth="800"
+        WindowStartupLocation="CenterScreen"
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel}">
+    
+    <Window.Resources>
+        <!-- Converters -->
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        
+        <!-- Data Templates for ViewModels -->
+        <DataTemplate DataType="{x:Type vm:CredentialManagementViewModel}">
+            <views:CredentialManagementView/>
+        </DataTemplate>
+        
+        <!-- Add other view templates here as they are implemented -->
+        
+        <!-- Styles -->
+        <Style x:Key="NavigationButtonStyle" TargetType="Button">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="MinWidth" Value="120"/>
+            <Setter Property="Background" Value="#FF3498DB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="3"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#FF2980B9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#FF21618C"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#FFBDC3C7"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style x:Key="StatusBarStyle" TargetType="StatusBar">
+            <Setter Property="Background" Value="#FFF8F9FA"/>
+            <Setter Property="BorderBrush" Value="#FFDEE2E6"/>
+            <Setter Property="BorderThickness" Value="0,1,0,0"/>
+        </Style>
+    </Window.Resources>
 
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Navigation Bar -->
+        <Border Grid.Row="0" 
+                Background="#FF2C3E50" 
+                Padding="10">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Launcher" 
+                        Command="{Binding ShowLauncherViewCommand}"
+                        Style="{StaticResource NavigationButtonStyle}"/>
+                <Button Content="Manage Accounts" 
+                        Command="{Binding ShowCredentialManagementViewCommand}"
+                        Style="{StaticResource NavigationButtonStyle}"/>
+                <Button Content="Manage Apps" 
+                        Command="{Binding ShowExecutableManagementViewCommand}"
+                        Style="{StaticResource NavigationButtonStyle}"/>
+                
+                <!-- Refresh Button -->
+                <Button Content="Refresh All" 
+                        Command="{Binding RefreshAllDataCommand}"
+                        HorizontalAlignment="Right"
+                        Margin="20,5,5,5">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
+                            <Setter Property="Background" Value="#FF27AE60"/>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </StackPanel>
+        </Border>
+        
+        <!-- Main Content Area -->
+        <Border Grid.Row="1" 
+                Background="White"
+                Padding="0">
+            <ContentPresenter Content="{Binding CurrentViewModel}"/>
+        </Border>
+        
+        <!-- Status Bar -->
+        <StatusBar Grid.Row="2" 
+                   Style="{StaticResource StatusBarStyle}">
+            <StatusBarItem>
+                <StackPanel Orientation="Horizontal">
+                    <!-- Loading Indicator -->
+                    <ProgressBar IsIndeterminate="True"
+                                 Width="100"
+                                 Height="16"
+                                 Margin="0,0,10,0"
+                                 Visibility="{Binding IsInitializing, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    
+                    <!-- Status Message -->
+                    <TextBlock Text="{Binding StatusMessage}"
+                               VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#FF495057"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasError}" Value="True">
+                                        <Setter Property="Foreground" Value="#FFE74C3C"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </StatusBarItem>
+        </StatusBar>
     </Grid>
 </Window>
