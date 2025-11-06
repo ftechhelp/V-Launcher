@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using V_Launcher.Services;
 
 namespace V_Launcher.ViewModels;
@@ -12,6 +13,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly ICredentialService _credentialService;
     private readonly IExecutableService _executableService;
     private readonly IProcessLauncher _processLauncher;
+    private readonly ILogger<MainViewModel> _logger;
 
     [ObservableProperty]
     private LauncherViewModel _launcherViewModel;
@@ -40,11 +42,13 @@ public partial class MainViewModel : ViewModelBase
     public MainViewModel(
         ICredentialService credentialService,
         IExecutableService executableService,
-        IProcessLauncher processLauncher)
+        IProcessLauncher processLauncher,
+        ILogger<MainViewModel> logger)
     {
         _credentialService = credentialService;
         _executableService = executableService;
         _processLauncher = processLauncher;
+        _logger = logger;
 
         // Initialize child ViewModels
         _launcherViewModel = new LauncherViewModel(executableService, credentialService, processLauncher);
@@ -110,16 +114,29 @@ public partial class MainViewModel : ViewModelBase
         {
             IsInitializing = true;
             SetStatus("Initializing application...");
+            _logger.LogInformation("Starting application initialization");
 
-            // Load initial data for all ViewModels
-            await Task.WhenAll(
-                LauncherViewModel.LoadExecutablesCommand.ExecuteAsync(null),
-                CredentialManagementViewModel.LoadAccountsCommand.ExecuteAsync(null),
-                ExecutableManagementViewModel.LoadConfigurationsCommand.ExecuteAsync(null),
-                ExecutableManagementViewModel.InitializeAsync()
-            );
+            // Load initial data for all ViewModels with individual error handling
+            var initializationTasks = new List<Task>();
+
+            // Initialize each ViewModel separately to isolate errors
+            initializationTasks.Add(SafeExecuteAsync(
+                () => CredentialManagementViewModel.LoadAccountsCommand.ExecuteAsync(null),
+                "credential management initialization"));
+
+            initializationTasks.Add(SafeExecuteAsync(
+                () => ExecutableManagementViewModel.InitializeAsync(),
+                "executable management initialization"));
+
+            initializationTasks.Add(SafeExecuteAsync(
+                () => LauncherViewModel.LoadExecutablesCommand.ExecuteAsync(null),
+                "launcher initialization"));
+
+            // Wait for all initialization tasks to complete
+            await Task.WhenAll(initializationTasks);
 
             SetStatus("Application initialized successfully");
+            _logger.LogInformation("Application initialization completed successfully");
             
             // Clear status after a delay
             _ = Task.Delay(2000).ContinueWith(_ => 
@@ -132,6 +149,7 @@ public partial class MainViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Critical error during application initialization");
             SetError($"Failed to initialize application: {ex.Message}");
         }
         finally
@@ -145,15 +163,27 @@ public partial class MainViewModel : ViewModelBase
         try
         {
             SetStatus("Refreshing all data...");
+            _logger.LogInformation("Starting data refresh");
 
-            // Refresh data in all ViewModels
-            await Task.WhenAll(
-                LauncherViewModel.RefreshExecutablesCommand.ExecuteAsync(null),
-                CredentialManagementViewModel.LoadAccountsCommand.ExecuteAsync(null),
-                ExecutableManagementViewModel.LoadConfigurationsCommand.ExecuteAsync(null)
-            );
+            // Refresh data in all ViewModels with individual error handling
+            var refreshTasks = new List<Task>();
+
+            refreshTasks.Add(SafeExecuteAsync(
+                () => CredentialManagementViewModel.LoadAccountsCommand.ExecuteAsync(null),
+                "credential data refresh"));
+
+            refreshTasks.Add(SafeExecuteAsync(
+                () => ExecutableManagementViewModel.LoadConfigurationsCommand.ExecuteAsync(null),
+                "executable configuration refresh"));
+
+            refreshTasks.Add(SafeExecuteAsync(
+                () => LauncherViewModel.RefreshExecutablesCommand.ExecuteAsync(null),
+                "launcher data refresh"));
+
+            await Task.WhenAll(refreshTasks);
 
             SetStatus("All data refreshed successfully");
+            _logger.LogInformation("Data refresh completed successfully");
             
             // Clear status after a delay
             _ = Task.Delay(2000).ContinueWith(_ => 
@@ -166,6 +196,7 @@ public partial class MainViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error during data refresh");
             SetError($"Failed to refresh data: {ex.Message}");
         }
     }
@@ -284,13 +315,42 @@ public partial class MainViewModel : ViewModelBase
     {
         try
         {
-            // Perform any necessary cleanup operations
-            await Task.CompletedTask;
+            _logger.LogInformation("Starting application shutdown cleanup");
+
+            // Perform cleanup operations for each ViewModel
+            var cleanupTasks = new List<Task>();
+
+            // Ensure all ViewModels are properly disposed
+            if (LauncherViewModel != null)
+            {
+                cleanupTasks.Add(SafeExecuteAsync(
+                    () => Task.Run(() => LauncherViewModel.Dispose()),
+                    "launcher cleanup"));
+            }
+
+            if (CredentialManagementViewModel != null)
+            {
+                cleanupTasks.Add(SafeExecuteAsync(
+                    () => Task.Run(() => CredentialManagementViewModel.Dispose()),
+                    "credential management cleanup"));
+            }
+
+            if (ExecutableManagementViewModel != null)
+            {
+                cleanupTasks.Add(SafeExecuteAsync(
+                    () => Task.Run(() => ExecutableManagementViewModel.Dispose()),
+                    "executable management cleanup"));
+            }
+
+            // Wait for all cleanup tasks to complete
+            await Task.WhenAll(cleanupTasks);
+
+            _logger.LogInformation("Application shutdown cleanup completed successfully");
         }
         catch (Exception ex)
         {
-            // Log shutdown errors but don't throw
-            System.Diagnostics.Debug.WriteLine($"Error during application shutdown: {ex.Message}");
+            _logger.LogError(ex, "Error during application shutdown cleanup");
+            // Don't rethrow - we're shutting down anyway
         }
     }
 
@@ -305,16 +365,71 @@ public partial class MainViewModel : ViewModelBase
 
     #endregion
 
+    #region Error Handling Helpers
+
+    /// <summary>
+    /// Safely executes an async operation with error handling and logging
+    /// </summary>
+    private async Task SafeExecuteAsync(Func<Task> operation, string operationName)
+    {
+        try
+        {
+            await operation();
+            _logger.LogDebug("Successfully completed {OperationName}", operationName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during {OperationName}", operationName);
+            
+            // Don't rethrow - we want to continue with other operations
+            // The individual ViewModels will handle their own error states
+        }
+    }
+
+    /// <summary>
+    /// Safely executes an async operation with error handling, logging, and return value
+    /// </summary>
+    private async Task<T?> SafeExecuteAsync<T>(Func<Task<T>> operation, string operationName, T? defaultValue = default)
+    {
+        try
+        {
+            var result = await operation();
+            _logger.LogDebug("Successfully completed {OperationName}", operationName);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during {OperationName}", operationName);
+            return defaultValue;
+        }
+    }
+
+    #endregion
+
     #region Disposal
 
     protected override void OnDisposing()
     {
-        // Dispose child ViewModels
-        LauncherViewModel?.Dispose();
-        CredentialManagementViewModel?.Dispose();
-        ExecutableManagementViewModel?.Dispose();
+        try
+        {
+            _logger.LogDebug("Disposing MainViewModel");
 
-        base.OnDisposing();
+            // Dispose child ViewModels safely
+            try { LauncherViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing LauncherViewModel"); }
+            try { CredentialManagementViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing CredentialManagementViewModel"); }
+            try { ExecutableManagementViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing ExecutableManagementViewModel"); }
+
+            _logger.LogDebug("MainViewModel disposal completed");
+        }
+        catch (Exception ex)
+        {
+            // Last resort error handling - use Debug.WriteLine since logger might be disposed
+            System.Diagnostics.Debug.WriteLine($"Error during MainViewModel disposal: {ex.Message}");
+        }
+        finally
+        {
+            base.OnDisposing();
+        }
     }
 
     #endregion
