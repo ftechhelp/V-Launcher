@@ -11,13 +11,20 @@
   - Add necessary NuGet packages (CommunityToolkit.Mvvm, System.Text.Json)
   - _Requirements: 1.1, 2.1, 4.1_
 
-- [ ] 2. Implement credential encryption service
+- [x] 2. Implement credential encryption service
+
+
+
+
   - Create ICredentialService interface and implementation
   - Implement DPAPI-based password encryption and decryption methods
   - Add secure password handling with SecureString
   - _Requirements: 5.1, 5.2, 5.3, 5.5_
 
-- [ ] 2.1 Write unit tests for credential encryption
+- [x] 2.1 Write unit tests for credential encryption
+
+
+
   - Test encryption/decryption roundtrip operations
   - Verify DPAPI integration and error handling
   - _Requirements: 5.1, 5.2_
