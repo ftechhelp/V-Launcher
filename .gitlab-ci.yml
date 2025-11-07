@@ -53,10 +53,7 @@ release:
     - powershell -Command "Compress-Archive -Path $PUBLISH_OUTPUT/win-x64-framework-dependent/* -DestinationPath $PUBLISH_OUTPUT/${PROJECT_NAME}-${CI_COMMIT_TAG}-win-x64-framework-dependent.zip -Force"
     
     # Generate release notes using PowerShell
-    - '$content = "# V-Launcher $env:CI_COMMIT_TAG`n`n## Downloads`n`nDownload the ZIP files from the Assets section below.`n`n- **Self-Contained Build** (Includes .NET Runtime): $env:PROJECT_NAME-$env:CI_COMMIT_TAG-win-x64.zip`n- **Framework-Dependent Build** (Requires .NET 9.0 Runtime): $env:PROJECT_NAME-$env:CI_COMMIT_TAG-win-x64-framework-dependent.zip`n`n## System Requirements`n`n- Windows 10 (1809+) or Windows 11`n- .NET 9.0 Desktop Runtime (for framework-dependent build only)`n`n## Installation`n`n1. Download the appropriate ZIP file from Assets below`n2. Extract to your desired location`n3. Run V-Launcher.exe`n`n## What''s New`n`nSee the [README](README.md) for full feature list and documentation."; $content | Out-File -FilePath release_notes.md -Encoding UTF8'
-    
-    # Upload release assets using glab
-    - 'if (Get-Command glab -ErrorAction SilentlyContinue) { glab release upload $env:CI_COMMIT_TAG "$env:PUBLISH_OUTPUT/$env:PROJECT_NAME-$env:CI_COMMIT_TAG-win-x64.zip" "$env:PUBLISH_OUTPUT/$env:PROJECT_NAME-$env:CI_COMMIT_TAG-win-x64-framework-dependent.zip" } else { Write-Host "glab not found, skipping asset upload" }'
+    - '$content = "# V-Launcher $env:CI_COMMIT_TAG`n`n## Downloads`n`nDownload the ZIP files from the job artifacts or Assets section below.`n`n- **Self-Contained Build** (Includes .NET Runtime): $env:PROJECT_NAME-$env:CI_COMMIT_TAG-win-x64.zip`n- **Framework-Dependent Build** (Requires .NET 9.0 Runtime): $env:PROJECT_NAME-$env:CI_COMMIT_TAG-win-x64-framework-dependent.zip`n`n## System Requirements`n`n- Windows 10 (1809+) or Windows 11`n- .NET 9.0 Desktop Runtime (for framework-dependent build only)`n`n## Installation`n`n1. Download the appropriate ZIP file from the artifacts`n2. Extract to your desired location`n3. Run V-Launcher.exe`n`n## What''s New`n`nSee the [README](README.md) for full feature list and documentation."; $content | Out-File -FilePath release_notes.md -Encoding UTF8'
   
   artifacts:
     paths:
