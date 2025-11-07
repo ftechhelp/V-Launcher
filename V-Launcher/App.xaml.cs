@@ -47,13 +47,13 @@ namespace V_Launcher
                 await _mainViewModel.HandleApplicationStartupAsync();
 
                 // Check if we should start minimized
-                if (_mainViewModel.ApplicationSettings.StartMinimized)
+                if (_mainViewModel.SettingsViewModel.Settings.StartMinimized)
                 {
-                    // Start minimized to tray
+                    // Start minimized to tray - don't show the window at all
                     mainWindow.WindowState = WindowState.Minimized;
                     mainWindow.ShowInTaskbar = false;
-                    mainWindow.Show();
-                    mainWindow.Hide(); // Hide immediately after showing to avoid flicker
+                    // Call MinimizeToTrayExternal to properly set up the tray icon
+                    mainWindow.MinimizeToTrayExternal();
                 }
                 else
                 {
@@ -132,6 +132,7 @@ namespace V_Launcher
                     services.AddSingleton<IStartupRegistryService, StartupRegistryService>();
 
                     // Register ViewModels with logging support
+                    services.AddTransient<SettingsViewModel>();
                     services.AddTransient<MainViewModel>();
                     services.AddTransient<LauncherViewModel>();
                     services.AddTransient<CredentialManagementViewModel>();

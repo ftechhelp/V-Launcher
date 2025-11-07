@@ -185,7 +185,11 @@
   - Handle window state changes and application lifecycle events
   - _Requirements: Application behavior based on user settings_
 
-- [ ] 25. Add settings ViewModel and commands
+- [x] 25. Add settings ViewModel and commands
+
+
+
+
   - Create SettingsViewModel or extend MainViewModel with settings properties
   - Add commands for toggling each setting with immediate persistence
   - Implement change notification and automatic saving of settings

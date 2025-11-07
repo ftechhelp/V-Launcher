@@ -44,6 +44,7 @@ public class IntegrationTests : IDisposable
                 services.AddSingleton<IStartupRegistryService, StartupRegistryService>();
 
                 // Register ViewModels
+                services.AddTransient<SettingsViewModel>();
                 services.AddTransient<MainViewModel>();
                 services.AddTransient<LauncherViewModel>();
                 services.AddTransient<CredentialManagementViewModel>();
@@ -339,6 +340,8 @@ public class IntegrationTests : IDisposable
                     services.AddSingleton<IExecutableService, ExecutableService>();
                     services.AddSingleton<IProcessLauncher, ProcessLauncher>();
                     services.AddSingleton<IStartupRegistryService, StartupRegistryService>();
+                    services.AddTransient<SettingsViewModel>();
+                    services.AddTransient<MainViewModel>();
                     services.AddTransient<CredentialManagementViewModel>();
                     services.AddTransient<ExecutableManagementViewModel>();
                     services.AddTransient<LauncherViewModel>();

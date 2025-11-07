@@ -111,7 +111,7 @@ namespace V_Launcher
             if (WindowState == WindowState.Minimized)
             {
                 // Check if we should minimize to tray
-                if (ViewModel?.ApplicationSettings.MinimizeOnClose == true)
+                if (ViewModel?.SettingsViewModel.Settings.MinimizeOnClose == true)
                 {
                     MinimizeToTray();
                 }
@@ -121,7 +121,7 @@ namespace V_Launcher
         protected override void OnClosing(CancelEventArgs e)
         {
             // Check if we should minimize to tray instead of closing
-            if (!_isClosing && ViewModel?.ApplicationSettings.MinimizeOnClose == true)
+            if (!_isClosing && ViewModel?.SettingsViewModel.Settings.MinimizeOnClose == true)
             {
                 e.Cancel = true;
                 MinimizeToTray();
@@ -160,10 +160,11 @@ namespace V_Launcher
             
             if (_notifyIcon != null)
             {
+                var wasVisible = _notifyIcon.Visible;
                 _notifyIcon.Visible = true;
                 
                 // Show balloon tip on first minimize
-                if (!_notifyIcon.Visible)
+                if (!wasVisible)
                 {
                     _notifyIcon.ShowBalloonTip(3000, "AD User Launcher", 
                         "Application minimized to system tray. Double-click the tray icon to restore.", 

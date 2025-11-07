@@ -40,6 +40,7 @@ public class ErrorHandlingTests : IDisposable
                 services.AddSingleton<IStartupRegistryService, StartupRegistryService>();
 
                 // Register ViewModels
+                services.AddTransient<SettingsViewModel>();
                 services.AddTransient<MainViewModel>();
                 services.AddTransient<LauncherViewModel>();
                 services.AddTransient<CredentialManagementViewModel>();

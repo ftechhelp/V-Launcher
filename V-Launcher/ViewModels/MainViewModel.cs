@@ -13,8 +13,6 @@ public partial class MainViewModel : ViewModelBase
     private readonly ICredentialService _credentialService;
     private readonly IExecutableService _executableService;
     private readonly IProcessLauncher _processLauncher;
-    private readonly IStartupRegistryService _startupRegistryService;
-    private readonly IConfigurationRepository _configurationRepository;
     private readonly ILogger<MainViewModel> _logger;
 
     [ObservableProperty]
@@ -25,6 +23,9 @@ public partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     private ExecutableManagementViewModel _executableManagementViewModel;
+
+    [ObservableProperty]
+    private SettingsViewModel _settingsViewModel;
 
     [ObservableProperty]
     private ViewModelBase _currentViewModel;
@@ -41,28 +42,23 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     private bool _hasError;
 
-    [ObservableProperty]
-    private Models.ApplicationSettings _applicationSettings = new();
-
     public MainViewModel(
         ICredentialService credentialService,
         IExecutableService executableService,
         IProcessLauncher processLauncher,
-        IStartupRegistryService startupRegistryService,
-        IConfigurationRepository configurationRepository,
+        SettingsViewModel settingsViewModel,
         ILogger<MainViewModel> logger)
     {
         _credentialService = credentialService;
         _executableService = executableService;
         _processLauncher = processLauncher;
-        _startupRegistryService = startupRegistryService;
-        _configurationRepository = configurationRepository;
         _logger = logger;
 
         // Initialize child ViewModels
         _launcherViewModel = new LauncherViewModel(executableService, credentialService, processLauncher);
         _credentialManagementViewModel = new CredentialManagementViewModel(credentialService, RefreshDataAfterChangesAsync);
         _executableManagementViewModel = new ExecutableManagementViewModel(executableService, credentialService, RefreshDataAfterChangesAsync);
+        _settingsViewModel = settingsViewModel ?? throw new ArgumentNullException(nameof(settingsViewModel));
 
         // Set initial view to launcher
         _currentViewModel = _launcherViewModel;
@@ -73,9 +69,6 @@ public partial class MainViewModel : ViewModelBase
         ShowExecutableManagementViewCommand = new RelayCommand(ShowExecutableManagementView, CanNavigate);
 
         InitializeApplicationCommand = new AsyncRelayCommand(InitializeApplicationAsync);
-        ToggleStartOnWindowsStartCommand = new AsyncRelayCommand<bool>(ToggleStartOnWindowsStartAsync);
-        ToggleStartMinimizedCommand = new RelayCommand<bool>(ToggleStartMinimized);
-        ToggleMinimizeOnCloseCommand = new RelayCommand<bool>(ToggleMinimizeOnClose);
 
         // Subscribe to child ViewModel events for status updates
         SubscribeToChildViewModelEvents();
@@ -91,9 +84,11 @@ public partial class MainViewModel : ViewModelBase
     public IRelayCommand ShowExecutableManagementViewCommand { get; }
 
     public IAsyncRelayCommand InitializeApplicationCommand { get; }
-    public IAsyncRelayCommand<bool> ToggleStartOnWindowsStartCommand { get; }
-    public IRelayCommand<bool> ToggleStartMinimizedCommand { get; }
-    public IRelayCommand<bool> ToggleMinimizeOnCloseCommand { get; }
+
+    // Settings commands exposed from SettingsViewModel
+    public IAsyncRelayCommand<bool> ToggleStartOnWindowsStartCommand => SettingsViewModel.ToggleStartOnWindowsStartCommand;
+    public IRelayCommand<bool> ToggleStartMinimizedCommand => SettingsViewModel.ToggleStartMinimizedCommand;
+    public IRelayCommand<bool> ToggleMinimizeOnCloseCommand => SettingsViewModel.ToggleMinimizeOnCloseCommand;
 
     #endregion
 
@@ -146,12 +141,11 @@ public partial class MainViewModel : ViewModelBase
             // Load initial data for all ViewModels with individual error handling
             var initializationTasks = new List<Task>();
 
-            // Load application settings first
-            await SafeExecuteAsync(
-                () => LoadApplicationSettingsAsync(),
-                "application settings initialization");
-
             // Initialize each ViewModel separately to isolate errors
+            initializationTasks.Add(SafeExecuteAsync(
+                () => SettingsViewModel.LoadSettingsCommand.ExecuteAsync(null),
+                "settings initialization"));
+
             initializationTasks.Add(SafeExecuteAsync(
                 () => CredentialManagementViewModel.LoadAccountsCommand.ExecuteAsync(null),
                 "credential management initialization"));
@@ -225,6 +219,16 @@ public partial class MainViewModel : ViewModelBase
                 HasError = ExecutableManagementViewModel.HasValidationError;
             }
         };
+
+        // Subscribe to settings ViewModel events for status updates
+        SettingsViewModel.PropertyChanged += (sender, e) =>
+        {
+            if (e.PropertyName == nameof(SettingsViewModel.StatusMessage))
+            {
+                StatusMessage = SettingsViewModel.StatusMessage;
+                HasError = SettingsViewModel.HasError;
+            }
+        };
     }
 
     #endregion
@@ -285,169 +289,13 @@ public partial class MainViewModel : ViewModelBase
 
     }
 
-    partial void OnApplicationSettingsChanged(Models.ApplicationSettings value)
-    {
-        // Save settings when they change (but not during initialization)
-        if (!IsInitializing)
-        {
-            _ = SaveApplicationSettingsAsync();
-        }
-    }
+
 
     #endregion
 
-    #region Settings Commands
 
-    /// <summary>
-    /// Toggles the Start with Windows setting
-    /// </summary>
-    private async Task ToggleStartOnWindowsStartAsync(bool enabled)
-    {
-        await SetStartOnWindowsStartAsync(enabled);
-    }
 
-    /// <summary>
-    /// Toggles the Start Minimized setting
-    /// </summary>
-    private void ToggleStartMinimized(bool enabled)
-    {
-        ApplicationSettings.StartMinimized = enabled;
-        SetStatus($"Start minimized {(enabled ? "enabled" : "disabled")}");
-        
-        // Clear status after a delay
-        _ = Task.Delay(2000).ContinueWith(_ => 
-        {
-            if (!IsDisposed)
-            {
-                ClearStatus();
-            }
-        });
-    }
 
-    /// <summary>
-    /// Toggles the Minimize on Close setting
-    /// </summary>
-    private void ToggleMinimizeOnClose(bool enabled)
-    {
-        ApplicationSettings.MinimizeOnClose = enabled;
-        SetStatus($"Minimize on close {(enabled ? "enabled" : "disabled")}");
-        
-        // Clear status after a delay
-        _ = Task.Delay(2000).ContinueWith(_ => 
-        {
-            if (!IsDisposed)
-            {
-                ClearStatus();
-            }
-        });
-    }
-
-    #endregion
-
-    #region Application Settings Management
-
-    /// <summary>
-    /// Loads application settings from configuration
-    /// </summary>
-    private async Task LoadApplicationSettingsAsync()
-    {
-        try
-        {
-            var settings = await _configurationRepository.LoadSettingsAsync();
-            ApplicationSettings = settings;
-            
-            // Sync registry state with loaded settings
-            await SyncStartupRegistryStateAsync();
-            
-            _logger.LogDebug("Application settings loaded successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error loading application settings");
-            // Use default settings on error
-            ApplicationSettings = new Models.ApplicationSettings();
-        }
-    }
-
-    /// <summary>
-    /// Saves application settings to configuration
-    /// </summary>
-    private async Task SaveApplicationSettingsAsync()
-    {
-        try
-        {
-            await _configurationRepository.SaveSettingsAsync(ApplicationSettings);
-            _logger.LogDebug("Application settings saved successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error saving application settings");
-            SetError($"Failed to save settings: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Handles changes to the StartOnWindowsStart setting
-    /// </summary>
-    /// <param name="enabled">Whether startup should be enabled</param>
-    public async Task SetStartOnWindowsStartAsync(bool enabled)
-    {
-        try
-        {
-            var success = await _startupRegistryService.SetStartupEnabledAsync(enabled);
-            
-            if (success)
-            {
-                ApplicationSettings.StartOnWindowsStart = enabled;
-                await SaveApplicationSettingsAsync();
-                
-                var status = enabled ? "enabled" : "disabled";
-                SetStatus($"Windows startup {status} successfully");
-                _logger.LogInformation("Windows startup setting changed to {Enabled}", enabled);
-            }
-            else
-            {
-                SetError("Failed to update Windows startup setting. You may need administrator privileges.");
-                _logger.LogWarning("Failed to update Windows startup registry setting");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating Windows startup setting");
-            SetError($"Error updating startup setting: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Syncs the registry state with the current application settings
-    /// </summary>
-    private async Task SyncStartupRegistryStateAsync()
-    {
-        try
-        {
-            var registryEnabled = await _startupRegistryService.IsStartupEnabledAsync();
-            
-            // If there's a mismatch, update the registry to match the settings
-            if (registryEnabled != ApplicationSettings.StartOnWindowsStart)
-            {
-                var success = await _startupRegistryService.SetStartupEnabledAsync(ApplicationSettings.StartOnWindowsStart);
-                
-                if (!success)
-                {
-                    _logger.LogWarning("Failed to sync startup registry state with application settings");
-                    // Update the setting to match the actual registry state
-                    ApplicationSettings.StartOnWindowsStart = registryEnabled;
-                    await SaveApplicationSettingsAsync();
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error syncing startup registry state");
-        }
-    }
-
-    #endregion
 
     #region Public Methods
 
@@ -471,7 +319,7 @@ public partial class MainViewModel : ViewModelBase
         {
             // If starting minimized, the App.xaml.cs already handles the window state
             // We just need to log the behavior
-            if (ApplicationSettings.StartMinimized)
+            if (SettingsViewModel.Settings.StartMinimized)
             {
                 _logger.LogInformation("Application started minimized to system tray");
                 SetStatus("Application started minimized to system tray");
@@ -646,6 +494,7 @@ public partial class MainViewModel : ViewModelBase
             try { LauncherViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing LauncherViewModel"); }
             try { CredentialManagementViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing CredentialManagementViewModel"); }
             try { ExecutableManagementViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing ExecutableManagementViewModel"); }
+            try { SettingsViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing SettingsViewModel"); }
 
             _logger.LogDebug("MainViewModel disposal completed");
         }
