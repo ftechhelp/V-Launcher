@@ -105,11 +105,13 @@ public partial class MainViewModel : ViewModelBase
         CurrentViewModel = ExecutableManagementViewModel;
         ClearStatus();
         // Automatically refresh executable management data when switching to this view
-        _ = Task.Run(async () =>
-        {
-            await ExecutableManagementViewModel.RefreshAvailableAccountsAsync();
-            await ExecutableManagementViewModel.LoadConfigurationsCommand.ExecuteAsync(null);
-        });
+        _ = RefreshExecutableManagementDataAsync();
+    }
+
+    private async Task RefreshExecutableManagementDataAsync()
+    {
+        await ExecutableManagementViewModel.RefreshAvailableAccountsAsync();
+        await ExecutableManagementViewModel.LoadConfigurationsCommand.ExecuteAsync(null);
     }
 
     private bool CanNavigate() => !IsInitializing;

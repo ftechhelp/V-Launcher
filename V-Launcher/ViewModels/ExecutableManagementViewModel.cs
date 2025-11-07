@@ -131,18 +131,22 @@ public partial class ExecutableManagementViewModel : ViewModelBase
 
             var savedConfig = await _executableService.SaveConfigurationAsync(config);
 
-            if (SelectedConfiguration != null)
+            // Update or add to collection on UI thread
+            await InvokeOnUIThreadAsync(() =>
             {
-                var index = Configurations.IndexOf(SelectedConfiguration);
-                if (index >= 0)
+                if (SelectedConfiguration != null)
                 {
-                    Configurations[index] = savedConfig;
+                    var index = Configurations.IndexOf(SelectedConfiguration);
+                    if (index >= 0)
+                    {
+                        Configurations[index] = savedConfig;
+                    }
                 }
-            }
-            else
-            {
-                Configurations.Add(savedConfig);
-            }
+                else
+                {
+                    Configurations.Add(savedConfig);
+                }
+            });
 
             ClearForm();
             IsEditing = false;
@@ -150,7 +154,7 @@ public partial class ExecutableManagementViewModel : ViewModelBase
             // Notify that data has changed to refresh other views
             if (_onDataChanged != null)
             {
-                _ = _onDataChanged();
+                _ = InvokeOnUIThreadAsync(async () => await _onDataChanged());
             }
         }
         catch (Exception ex)
@@ -171,14 +175,21 @@ public partial class ExecutableManagementViewModel : ViewModelBase
         {
             IsLoading = true;
             await _executableService.DeleteConfigurationAsync(SelectedConfiguration.Id);
-            Configurations.Remove(SelectedConfiguration);
+            
+            // Update collection on UI thread
+            var configToRemove = SelectedConfiguration;
+            await InvokeOnUIThreadAsync(() =>
+            {
+                Configurations.Remove(configToRemove);
+            });
+            
             SelectedConfiguration = null;
             ClearForm();
             
             // Notify that data has changed to refresh other views
             if (_onDataChanged != null)
             {
-                _ = _onDataChanged();
+                _ = InvokeOnUIThreadAsync(async () => await _onDataChanged());
             }
         }
         catch (Exception ex)
@@ -205,11 +216,15 @@ public partial class ExecutableManagementViewModel : ViewModelBase
             IsLoading = true;
             var configs = await _executableService.GetConfigurationsAsync();
             
-            Configurations.Clear();
-            foreach (var config in configs)
+            // Update collections on UI thread
+            await InvokeOnUIThreadAsync(() =>
             {
-                Configurations.Add(config);
-            }
+                Configurations.Clear();
+                foreach (var config in configs)
+                {
+                    Configurations.Add(config);
+                }
+            });
         }
         catch (Exception ex)
         {
@@ -227,11 +242,15 @@ public partial class ExecutableManagementViewModel : ViewModelBase
         {
             var accounts = await _credentialService.GetAccountsAsync();
             
-            AvailableAccounts.Clear();
-            foreach (var account in accounts)
+            // Update collections on UI thread
+            await InvokeOnUIThreadAsync(() =>
             {
-                AvailableAccounts.Add(account);
-            }
+                AvailableAccounts.Clear();
+                foreach (var account in accounts)
+                {
+                    AvailableAccounts.Add(account);
+                }
+            });
         }
         catch (Exception ex)
         {

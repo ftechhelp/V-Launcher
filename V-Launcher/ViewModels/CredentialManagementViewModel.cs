@@ -128,19 +128,22 @@ public partial class CredentialManagementViewModel : ViewModelBase
 
             var savedAccount = await _credentialService.SaveAccountAsync(account, plainPassword);
 
-            // Update or add to collection
-            if (SelectedAccount != null)
+            // Update or add to collection on UI thread
+            await InvokeOnUIThreadAsync(() =>
             {
-                var index = Accounts.IndexOf(SelectedAccount);
-                if (index >= 0)
+                if (SelectedAccount != null)
                 {
-                    Accounts[index] = savedAccount;
+                    var index = Accounts.IndexOf(SelectedAccount);
+                    if (index >= 0)
+                    {
+                        Accounts[index] = savedAccount;
+                    }
                 }
-            }
-            else
-            {
-                Accounts.Add(savedAccount);
-            }
+                else
+                {
+                    Accounts.Add(savedAccount);
+                }
+            });
 
             ClearForm();
             IsEditing = false;
@@ -148,7 +151,7 @@ public partial class CredentialManagementViewModel : ViewModelBase
             // Notify that data has changed to refresh other views
             if (_onDataChanged != null)
             {
-                _ = _onDataChanged();
+                _ = InvokeOnUIThreadAsync(async () => await _onDataChanged());
             }
         }
         catch (Exception ex)
@@ -169,14 +172,21 @@ public partial class CredentialManagementViewModel : ViewModelBase
         {
             IsLoading = true;
             await _credentialService.DeleteAccountAsync(SelectedAccount.Id);
-            Accounts.Remove(SelectedAccount);
+            
+            // Update collection on UI thread
+            var accountToRemove = SelectedAccount;
+            await InvokeOnUIThreadAsync(() =>
+            {
+                Accounts.Remove(accountToRemove);
+            });
+            
             SelectedAccount = null;
             ClearForm();
             
             // Notify that data has changed to refresh other views
             if (_onDataChanged != null)
             {
-                _ = _onDataChanged();
+                _ = InvokeOnUIThreadAsync(async () => await _onDataChanged());
             }
         }
         catch (Exception ex)
@@ -203,11 +213,15 @@ public partial class CredentialManagementViewModel : ViewModelBase
             IsLoading = true;
             var accounts = await _credentialService.GetAccountsAsync();
             
-            Accounts.Clear();
-            foreach (var account in accounts)
+            // Update collections on UI thread
+            await InvokeOnUIThreadAsync(() =>
             {
-                Accounts.Add(account);
-            }
+                Accounts.Clear();
+                foreach (var account in accounts)
+                {
+                    Accounts.Add(account);
+                }
+            });
         }
         catch (Exception ex)
         {

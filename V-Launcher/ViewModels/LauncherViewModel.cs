@@ -166,10 +166,8 @@ public partial class LauncherViewModel : ViewModelBase
             var accounts = await _credentialService.GetAccountsAsync();
             var accountsDict = accounts.ToDictionary(a => a.Id, a => a);
 
-            // Clear existing items
-            ExecutableItems.Clear();
-
-            // Create executable items with icons
+            // Create executable items with icons (off UI thread)
+            var executableItems = new List<ExecutableItem>();
             foreach (var config in configurations)
             {
                 if (accountsDict.TryGetValue(config.ADAccountId, out var account))
@@ -191,11 +189,21 @@ public partial class LauncherViewModel : ViewModelBase
                         executableItem.Icon = null;
                     }
 
-                    ExecutableItems.Add(executableItem);
+                    executableItems.Add(executableItem);
                 }
             }
 
-            if (!ExecutableItems.Any())
+            // Update collections on UI thread
+            await InvokeOnUIThreadAsync(() =>
+            {
+                ExecutableItems.Clear();
+                foreach (var item in executableItems)
+                {
+                    ExecutableItems.Add(item);
+                }
+            });
+
+            if (!executableItems.Any())
             {
                 SetStatus("No executable configurations found. Use the configuration management to add executables.");
             }
