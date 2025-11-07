@@ -18,4 +18,8 @@
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Resource Include="V-Launcher_Logo.png" />
+  </ItemGroup>
+
 </Project>

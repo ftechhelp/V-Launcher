@@ -173,7 +173,12 @@
   - Add visual styling consistent with existing UI design
   - _Requirements: User interface for application behavior settings_
 
-- [ ] 24. Implement startup and window behavior logic
+- [x] 24. Implement startup and window behavior logic
+
+
+
+
+
   - Add logic to start application minimized when StartMinimized is enabled
   - Implement minimize-to-tray functionality when MinimizeOnClose is enabled
   - Add system tray icon and context menu for minimized application

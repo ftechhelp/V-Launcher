@@ -37,7 +37,7 @@ namespace V_Launcher
                 // Get the main ViewModel
                 _mainViewModel = _host.Services.GetRequiredService<MainViewModel>();
 
-                // Create and show the main window
+                // Create the main window
                 var mainWindow = new MainWindow
                 {
                     DataContext = _mainViewModel
@@ -46,7 +46,20 @@ namespace V_Launcher
                 // Handle application startup in the ViewModel
                 await _mainViewModel.HandleApplicationStartupAsync();
 
-                mainWindow.Show();
+                // Check if we should start minimized
+                if (_mainViewModel.ApplicationSettings.StartMinimized)
+                {
+                    // Start minimized to tray
+                    mainWindow.WindowState = WindowState.Minimized;
+                    mainWindow.ShowInTaskbar = false;
+                    mainWindow.Show();
+                    mainWindow.Hide(); // Hide immediately after showing to avoid flicker
+                }
+                else
+                {
+                    mainWindow.Show();
+                }
+                
                 MainWindow = mainWindow;
 
                 _logger.LogInformation("Application startup completed successfully");

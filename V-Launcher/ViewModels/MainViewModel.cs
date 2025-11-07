@@ -457,6 +457,43 @@ public partial class MainViewModel : ViewModelBase
     public async Task HandleApplicationStartupAsync()
     {
         await InitializeApplicationAsync();
+        
+        // Handle startup behavior after initialization
+        HandleStartupBehavior();
+    }
+
+    /// <summary>
+    /// Handles startup behavior based on application settings
+    /// </summary>
+    private void HandleStartupBehavior()
+    {
+        try
+        {
+            // If starting minimized, the App.xaml.cs already handles the window state
+            // We just need to log the behavior
+            if (ApplicationSettings.StartMinimized)
+            {
+                _logger.LogInformation("Application started minimized to system tray");
+                SetStatus("Application started minimized to system tray");
+                
+                // Clear status after a delay
+                _ = Task.Delay(3000).ContinueWith(_ => 
+                {
+                    if (!IsDisposed)
+                    {
+                        ClearStatus();
+                    }
+                });
+            }
+            else
+            {
+                _logger.LogInformation("Application started normally");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling startup behavior");
+        }
     }
 
     /// <summary>
@@ -563,6 +600,36 @@ public partial class MainViewModel : ViewModelBase
             _logger.LogError(ex, "Error during {OperationName}", operationName);
             return defaultValue;
         }
+    }
+
+    #endregion
+
+    #region Window Management
+
+    /// <summary>
+    /// Event to notify when the window should be shown from tray
+    /// </summary>
+    public event EventHandler? ShowWindowRequested;
+
+    /// <summary>
+    /// Event to notify when the window should be minimized to tray
+    /// </summary>
+    public event EventHandler? MinimizeToTrayRequested;
+
+    /// <summary>
+    /// Shows the main window (used by system tray interactions)
+    /// </summary>
+    public void ShowMainWindow()
+    {
+        ShowWindowRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Minimizes the main window to tray (used by programmatic requests)
+    /// </summary>
+    public void MinimizeMainWindowToTray()
+    {
+        MinimizeToTrayRequested?.Invoke(this, EventArgs.Empty);
     }
 
     #endregion
