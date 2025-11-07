@@ -14,10 +14,10 @@ public class ApplicationSettingsTests
         // Act
         var settings = new ApplicationSettings();
 
-        // Assert
-        Assert.True(settings.StartOnWindowsStart);
-        Assert.True(settings.StartMinimized);
-        Assert.True(settings.MinimizeOnClose);
+        // Assert - new defaults are all false
+        Assert.False(settings.StartOnWindowsStart);
+        Assert.False(settings.StartMinimized);
+        Assert.False(settings.MinimizeOnClose);
     }
 
     [Fact]
@@ -49,14 +49,14 @@ public class ApplicationSettingsTests
         var clone = original.Clone();
 
         // Act
-        original.StartOnWindowsStart = false;
-        original.StartMinimized = false;
-        original.MinimizeOnClose = false;
+        original.StartOnWindowsStart = true;
+        original.StartMinimized = true;
+        original.MinimizeOnClose = true;
 
-        // Assert
-        Assert.True(clone.StartOnWindowsStart);
-        Assert.True(clone.StartMinimized);
-        Assert.True(clone.MinimizeOnClose);
+        // Assert - clone should still have default values (false)
+        Assert.False(clone.StartOnWindowsStart);
+        Assert.False(clone.StartMinimized);
+        Assert.False(clone.MinimizeOnClose);
     }
 
     [Theory]

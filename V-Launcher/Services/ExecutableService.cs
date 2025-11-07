@@ -34,7 +34,7 @@ public class ExecutableService : IExecutableService
         return await _configurationRepository.LoadExecutableConfigurationsAsync();
     }
 
-    public async Task<ExecutableConfiguration> SaveConfigurationAsync(ExecutableConfiguration config)
+    public async Task<ExecutableConfiguration> SaveConfigurationAsync(ExecutableConfiguration config, string? oldCustomIconPath = null)
     {
         if (config == null)
             throw new ArgumentNullException(nameof(config));
@@ -66,8 +66,8 @@ public class ExecutableService : IExecutableService
 
         await _configurationRepository.SaveExecutableConfigurationsAsync(configurations);
         
-        // Clear cached icon for this configuration
-        await ClearConfigurationIconFromCache(config);
+        // Clear cached icons for this configuration (including old custom icon if it changed)
+        await ClearConfigurationIconFromCache(config, oldCustomIconPath);
         
         return config;
     }
@@ -266,7 +266,7 @@ public class ExecutableService : IExecutableService
         _iconCache.Clear();
     }
 
-    private async Task ClearConfigurationIconFromCache(ExecutableConfiguration config)
+    private async Task ClearConfigurationIconFromCache(ExecutableConfiguration config, string? oldCustomIconPath = null)
     {
         await _iconCacheLock.WaitAsync();
         try
@@ -275,7 +275,14 @@ public class ExecutableService : IExecutableService
             var executableCacheKey = $"exe:{config.ExecutablePath}";
             _iconCache.TryRemove(executableCacheKey, out _);
 
-            // Remove custom icon from cache if it exists
+            // Remove old custom icon from cache if it was changed
+            if (!string.IsNullOrEmpty(oldCustomIconPath) && oldCustomIconPath != config.CustomIconPath)
+            {
+                var oldCustomCacheKey = $"custom:{oldCustomIconPath}";
+                _iconCache.TryRemove(oldCustomCacheKey, out _);
+            }
+
+            // Remove new custom icon from cache if it exists
             if (!string.IsNullOrEmpty(config.CustomIconPath))
             {
                 var customCacheKey = $"custom:{config.CustomIconPath}";

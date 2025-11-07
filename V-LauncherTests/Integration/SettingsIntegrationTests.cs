@@ -94,8 +94,11 @@ public class SettingsIntegrationTests : IDisposable
 
         try
         {
-            // Act - Toggle startup setting
-            await settingsViewModel.ToggleStartOnWindowsStartCommand.ExecuteAsync(!initialRegistryState);
+            // Act - Toggle startup setting by setting the property directly
+            settingsViewModel.Settings.StartOnWindowsStart = !initialRegistryState;
+            
+            // Wait for the async auto-save and registry update to complete
+            await Task.Delay(1000);
 
             // Assert
             var newRegistryState = await registryService.IsStartupEnabledAsync();
@@ -144,26 +147,26 @@ public class SettingsIntegrationTests : IDisposable
         await settingsViewModel.LoadSettingsCommand.ExecuteAsync(null);
 
         // Modify all settings away from defaults
-        settingsViewModel.Settings.StartOnWindowsStart = false;
-        settingsViewModel.Settings.StartMinimized = false;
-        settingsViewModel.Settings.MinimizeOnClose = false;
+        settingsViewModel.Settings.StartOnWindowsStart = true;
+        settingsViewModel.Settings.StartMinimized = true;
+        settingsViewModel.Settings.MinimizeOnClose = true;
         await settingsViewModel.SaveSettingsCommand.ExecuteAsync(null);
 
         // Act - Reset to defaults
         await settingsViewModel.ResetToDefaultsCommand.ExecuteAsync(null);
 
         // Assert
-        Assert.True(settingsViewModel.Settings.StartOnWindowsStart);
-        Assert.True(settingsViewModel.Settings.StartMinimized);
-        Assert.True(settingsViewModel.Settings.MinimizeOnClose);
+        Assert.False(settingsViewModel.Settings.StartOnWindowsStart);
+        Assert.False(settingsViewModel.Settings.StartMinimized);
+        Assert.False(settingsViewModel.Settings.MinimizeOnClose);
 
         // Verify persistence
         var newSettingsViewModel = _services.GetRequiredService<SettingsViewModel>();
         await newSettingsViewModel.LoadSettingsCommand.ExecuteAsync(null);
         
-        Assert.True(newSettingsViewModel.Settings.StartOnWindowsStart);
-        Assert.True(newSettingsViewModel.Settings.StartMinimized);
-        Assert.True(newSettingsViewModel.Settings.MinimizeOnClose);
+        Assert.False(newSettingsViewModel.Settings.StartOnWindowsStart);
+        Assert.False(newSettingsViewModel.Settings.StartMinimized);
+        Assert.False(newSettingsViewModel.Settings.MinimizeOnClose);
 
         // Cleanup
         settingsViewModel.Dispose();

@@ -1,24 +1,71 @@
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
 namespace V_Launcher.Models;
 
 /// <summary>
 /// Application settings for startup behavior and window management
 /// </summary>
-public class ApplicationSettings
+public class ApplicationSettings : INotifyPropertyChanged
 {
+    private bool _startOnWindowsStart = false;
+    private bool _startMinimized = false;
+    private bool _minimizeOnClose = false;
+
     /// <summary>
     /// Whether the application should start automatically when Windows starts
     /// </summary>
-    public bool StartOnWindowsStart { get; set; } = false;
+    public bool StartOnWindowsStart
+    {
+        get => _startOnWindowsStart;
+        set
+        {
+            if (_startOnWindowsStart != value)
+            {
+                _startOnWindowsStart = value;
+                OnPropertyChanged();
+            }
+        }
+    }
 
     /// <summary>
     /// Whether the application should start minimized to the system tray
     /// </summary>
-    public bool StartMinimized { get; set; } = false;
+    public bool StartMinimized
+    {
+        get => _startMinimized;
+        set
+        {
+            if (_startMinimized != value)
+            {
+                _startMinimized = value;
+                OnPropertyChanged();
+            }
+        }
+    }
 
     /// <summary>
     /// Whether the application should minimize to tray instead of closing when the close button is clicked
     /// </summary>
-    public bool MinimizeOnClose { get; set; } = false;
+    public bool MinimizeOnClose
+    {
+        get => _minimizeOnClose;
+        set
+        {
+            if (_minimizeOnClose != value)
+            {
+                _minimizeOnClose = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 
     /// <summary>
     /// Creates a copy of the current settings

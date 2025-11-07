@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -15,8 +16,32 @@ public partial class SettingsViewModel : ViewModelBase
     private readonly IStartupRegistryService _startupRegistryService;
     private readonly ILogger<SettingsViewModel> _logger;
 
-    [ObservableProperty]
     private ApplicationSettings _settings = new();
+
+    /// <summary>
+    /// Gets or sets the application settings
+    /// </summary>
+    public ApplicationSettings Settings
+    {
+        get => _settings;
+        set
+        {
+            if (_settings != null)
+            {
+                _settings.PropertyChanged -= OnSettingsPropertyChanged;
+            }
+
+            SetProperty(ref _settings, value);
+
+            if (_settings != null)
+            {
+                _settings.PropertyChanged += OnSettingsPropertyChanged;
+            }
+
+            SaveSettingsCommand.NotifyCanExecuteChanged();
+            ClearValidation();
+        }
+    }
 
     [ObservableProperty]
     private bool _isLoading;
@@ -79,41 +104,13 @@ public partial class SettingsViewModel : ViewModelBase
 
             var loadedSettings = await _configurationRepository.LoadSettingsAsync();
             
-            // Check if we have existing settings with old defaults (all true)
-            if (loadedSettings != null && 
-                loadedSettings.StartOnWindowsStart == true && 
-                loadedSettings.StartMinimized == true && 
-                loadedSettings.MinimizeOnClose == true)
-            {
-                _logger.LogInformation("Detected old default settings, migrating to new defaults (all false)");
-                
-                // Migrate to new defaults
-                Settings = new ApplicationSettings
-                {
-                    StartOnWindowsStart = false,
-                    StartMinimized = false,
-                    MinimizeOnClose = false
-                };
-                
-                // Update registry to match new default
-                await _startupRegistryService.SetStartupEnabledAsync(false);
-                
-                // Save the migrated settings
-                await SaveSettingsAsync();
-                
-                SetStatus("Settings migrated to new defaults (all unchecked)");
-                _logger.LogInformation("Settings successfully migrated to new defaults");
-            }
-            else
-            {
-                Settings = loadedSettings ?? new ApplicationSettings();
-                
-                // Sync registry state with loaded settings
-                await SyncStartupRegistryStateAsync();
-                
-                SetStatus("Settings loaded successfully");
-                _logger.LogInformation("Application settings loaded successfully");
-            }
+            Settings = loadedSettings ?? new ApplicationSettings();
+            
+            // Sync registry state with loaded settings
+            await SyncStartupRegistryStateAsync();
+            
+            SetStatus("Settings loaded successfully");
+            _logger.LogInformation("Application settings loaded successfully");
         }
         catch (Exception ex)
         {
@@ -387,12 +384,9 @@ public partial class SettingsViewModel : ViewModelBase
                 
                 if (!success)
                 {
-                    _logger.LogWarning("Failed to sync startup registry state with application settings");
-                    // Update the setting to match the actual registry state
-                    Settings.StartOnWindowsStart = registryEnabled;
-                    await SaveSettingsAsync();
-                    
-                    SetError("Registry sync failed - setting updated to match current state");
+                    _logger.LogWarning("Failed to sync startup registry state with application settings. Registry update may require administrator privileges.");
+                    // Don't revert the setting during load - keep the user's saved preference
+                    // The setting will remain as configured, even if registry sync failed
                 }
                 else
                 {
@@ -479,13 +473,58 @@ public partial class SettingsViewModel : ViewModelBase
         ToggleMinimizeOnCloseCommand.NotifyCanExecuteChanged();
     }
 
-    partial void OnSettingsChanged(ApplicationSettings value)
+    /// <summary>
+    /// Handles property changes on the Settings object to auto-save
+    /// </summary>
+    private async void OnSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // Update command can execute states when settings change
-        SaveSettingsCommand.NotifyCanExecuteChanged();
-        
-        // Clear any previous validation errors when settings change
-        ClearValidation();
+        if (IsLoading || IsSaving)
+        {
+            // Don't auto-save during loading or if already saving
+            return;
+        }
+
+        try
+        {
+            _logger.LogDebug("Settings property changed: {PropertyName}", e.PropertyName);
+
+            // Handle special case for StartOnWindowsStart which requires registry update
+            if (e.PropertyName == nameof(ApplicationSettings.StartOnWindowsStart))
+            {
+                var success = await _startupRegistryService.SetStartupEnabledAsync(Settings.StartOnWindowsStart);
+                
+                if (!success)
+                {
+                    SetError("Failed to update Windows startup setting. You may need administrator privileges.");
+                    _logger.LogWarning("Failed to update Windows startup registry setting");
+                    
+                    // Revert the setting if registry update failed
+                    Settings.StartOnWindowsStart = !Settings.StartOnWindowsStart;
+                    return;
+                }
+                
+                var status = Settings.StartOnWindowsStart ? "enabled" : "disabled";
+                SetStatus($"Windows startup {status} successfully");
+            }
+            else if (e.PropertyName == nameof(ApplicationSettings.StartMinimized))
+            {
+                var status = Settings.StartMinimized ? "enabled" : "disabled";
+                SetStatus($"Start minimized {status}");
+            }
+            else if (e.PropertyName == nameof(ApplicationSettings.MinimizeOnClose))
+            {
+                var status = Settings.MinimizeOnClose ? "enabled" : "disabled";
+                SetStatus($"Minimize on close {status}");
+            }
+
+            // Auto-save the settings
+            await SaveSettingsAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling settings property change");
+            SetError($"Error saving setting: {ex.Message}");
+        }
     }
 
     #endregion

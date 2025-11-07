@@ -396,6 +396,74 @@ public class ExecutableServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveConfigurationAsync_WhenUpdatingCustomIcon_ClearsBothOldAndNewIconFromCache()
+    {
+        // Arrange - Create two test icon files
+        var oldIconPath = Path.Combine(_tempTestDir, "old_icon.png");
+        var newIconPath = Path.Combine(_tempTestDir, "new_icon.png");
+        CreateTestPngFile(oldIconPath);
+        CreateTestPngFile(newIconPath);
+
+        // Create initial configuration with old custom icon
+        var config = new ExecutableConfiguration
+        {
+            DisplayName = "Test App",
+            ExecutablePath = Path.Combine(Environment.SystemDirectory, "notepad.exe"),
+            CustomIconPath = oldIconPath,
+            ADAccountId = Guid.NewGuid()
+        };
+
+        // Save initial configuration and load the old icon into cache
+        var savedConfig = await _executableService.SaveConfigurationAsync(config);
+        var oldIcon = await _executableService.GetIconAsync(savedConfig);
+        Assert.NotNull(oldIcon);
+
+        // Act - Update the configuration with a new custom icon
+        savedConfig.CustomIconPath = newIconPath;
+        await _executableService.SaveConfigurationAsync(savedConfig, oldIconPath);
+
+        // Assert - Get the icon again, it should be the new one (not cached old one)
+        var newIcon = await _executableService.GetIconAsync(savedConfig);
+        Assert.NotNull(newIcon);
+        
+        // The icons should be different instances since cache was cleared
+        Assert.NotSame(oldIcon, newIcon);
+    }
+
+    [Fact]
+    public async Task SaveConfigurationAsync_WhenClearingCustomIcon_ClearsOldIconFromCache()
+    {
+        // Arrange - Create a test icon file
+        var customIconPath = Path.Combine(_tempTestDir, "custom_icon.png");
+        CreateTestPngFile(customIconPath);
+
+        // Create initial configuration with custom icon
+        var config = new ExecutableConfiguration
+        {
+            DisplayName = "Test App",
+            ExecutablePath = Path.Combine(Environment.SystemDirectory, "notepad.exe"),
+            CustomIconPath = customIconPath,
+            ADAccountId = Guid.NewGuid()
+        };
+
+        // Save initial configuration and load the custom icon into cache
+        var savedConfig = await _executableService.SaveConfigurationAsync(config);
+        var customIcon = await _executableService.GetIconAsync(savedConfig);
+        Assert.NotNull(customIcon);
+
+        // Act - Clear the custom icon (set to null)
+        savedConfig.CustomIconPath = null;
+        await _executableService.SaveConfigurationAsync(savedConfig, customIconPath);
+
+        // Assert - Get the icon again, it should now be the executable icon (not cached custom icon)
+        var executableIcon = await _executableService.GetIconAsync(savedConfig);
+        Assert.NotNull(executableIcon);
+        
+        // The icons should be different instances since we're now using executable icon
+        Assert.NotSame(customIcon, executableIcon);
+    }
+
+    [Fact]
     public async Task IconCaching_SamePathRequestedTwice_UsesCachedResult()
     {
         // Arrange

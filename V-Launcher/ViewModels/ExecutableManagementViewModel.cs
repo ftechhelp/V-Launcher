@@ -48,10 +48,19 @@ public partial class ExecutableManagementViewModel : ViewModelBase
     private bool _isEditing;
 
     [ObservableProperty]
+    private bool _hasUnsavedChanges;
+
+    [ObservableProperty]
     private string _validationMessage = string.Empty;
 
     [ObservableProperty]
     private bool _hasValidationError;
+
+    [ObservableProperty]
+    private string _successMessage = string.Empty;
+
+    [ObservableProperty]
+    private bool _hasSuccessMessage;
 
     [ObservableProperty]
     private bool _isLoading;
@@ -94,6 +103,7 @@ public partial class ExecutableManagementViewModel : ViewModelBase
     {
         ClearForm();
         IsEditing = true;
+        HasUnsavedChanges = true; // New configurations always have changes
         await Task.CompletedTask;
     }
 
@@ -109,6 +119,7 @@ public partial class ExecutableManagementViewModel : ViewModelBase
         SelectedAccount = AvailableAccounts.FirstOrDefault(a => a.Id == SelectedConfiguration.ADAccountId);
         
         IsEditing = true;
+        HasUnsavedChanges = false; // Reset when starting to edit
         await UpdatePreviewIconAsync();
     }
 
@@ -121,6 +132,9 @@ public partial class ExecutableManagementViewModel : ViewModelBase
             IsLoading = true;
             ClearValidation();
 
+            // Track the old custom icon path before updating (for cache clearing)
+            string? oldCustomIconPath = SelectedConfiguration?.CustomIconPath;
+
             var config = SelectedConfiguration ?? new ExecutableConfiguration();
             config.DisplayName = DisplayName.Trim();
             config.ExecutablePath = ExecutablePath.Trim();
@@ -129,9 +143,11 @@ public partial class ExecutableManagementViewModel : ViewModelBase
             config.Arguments = string.IsNullOrWhiteSpace(Arguments) ? null : Arguments.Trim();
             config.WorkingDirectory = string.IsNullOrWhiteSpace(WorkingDirectory) ? null : WorkingDirectory.Trim();
 
-            var savedConfig = await _executableService.SaveConfigurationAsync(config);
+            // Pass the old custom icon path so the service can clear it from cache
+            var savedConfig = await _executableService.SaveConfigurationAsync(config, oldCustomIconPath);
 
             // Update or add to collection on UI thread
+            var isNewConfig = SelectedConfiguration == null;
             await InvokeOnUIThreadAsync(() =>
             {
                 if (SelectedConfiguration != null)
@@ -150,6 +166,11 @@ public partial class ExecutableManagementViewModel : ViewModelBase
 
             ClearForm();
             IsEditing = false;
+            
+            // Show success message
+            SetSuccessMessage(isNewConfig 
+                ? $"Configuration '{savedConfig.DisplayName}' created successfully!" 
+                : $"Configuration '{savedConfig.DisplayName}' updated successfully!");
             
             // Notify that data has changed to refresh other views
             if (_onDataChanged != null)
@@ -354,7 +375,8 @@ public partial class ExecutableManagementViewModel : ViewModelBase
 
     private bool CanEditConfiguration() => SelectedConfiguration != null && !IsLoading;
 
-    private bool CanSaveConfiguration() => IsEditing && !IsLoading && !string.IsNullOrWhiteSpace(DisplayName) 
+    private bool CanSaveConfiguration() => IsEditing && !IsLoading && HasUnsavedChanges 
+                                         && !string.IsNullOrWhiteSpace(DisplayName) 
                                          && !string.IsNullOrWhiteSpace(ExecutablePath) && SelectedAccount != null;
 
     private bool CanDeleteConfiguration() => SelectedConfiguration != null && !IsLoading;
@@ -436,12 +458,33 @@ public partial class ExecutableManagementViewModel : ViewModelBase
     {
         ValidationMessage = message;
         HasValidationError = true;
+        ClearSuccess();
     }
 
     private void ClearValidation()
     {
         ValidationMessage = string.Empty;
         HasValidationError = false;
+    }
+
+    private void SetSuccessMessage(string message)
+    {
+        SuccessMessage = message;
+        HasSuccessMessage = true;
+        ClearValidation();
+        
+        // Auto-clear success message after 3 seconds
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(3000);
+            await InvokeOnUIThreadAsync(() => ClearSuccess());
+        });
+    }
+
+    private void ClearSuccess()
+    {
+        SuccessMessage = string.Empty;
+        HasSuccessMessage = false;
     }
 
     private void ClearForm()
@@ -453,7 +496,9 @@ public partial class ExecutableManagementViewModel : ViewModelBase
         WorkingDirectory = string.Empty;
         SelectedAccount = null;
         PreviewIcon = null;
+        HasUnsavedChanges = false;
         ClearValidation();
+        ClearSuccess();
     }
 
     private async Task UpdatePreviewIconAsync()
@@ -489,6 +534,10 @@ public partial class ExecutableManagementViewModel : ViewModelBase
 
     partial void OnDisplayNameChanged(string value)
     {
+        if (IsEditing)
+        {
+            HasUnsavedChanges = true;
+        }
         SaveConfigurationCommand.NotifyCanExecuteChanged();
         if (HasValidationError && !string.IsNullOrWhiteSpace(value))
         {
@@ -498,6 +547,10 @@ public partial class ExecutableManagementViewModel : ViewModelBase
 
     partial void OnExecutablePathChanged(string value)
     {
+        if (IsEditing)
+        {
+            HasUnsavedChanges = true;
+        }
         SaveConfigurationCommand.NotifyCanExecuteChanged();
         if (HasValidationError && !string.IsNullOrWhiteSpace(value))
         {
@@ -508,16 +561,25 @@ public partial class ExecutableManagementViewModel : ViewModelBase
 
     partial void OnCustomIconPathChanged(string value)
     {
+        if (IsEditing)
+        {
+            HasUnsavedChanges = true;
+        }
         if (HasValidationError && (string.IsNullOrWhiteSpace(value) || File.Exists(value)))
         {
             ClearValidation();
         }
         ClearCustomIconCommand.NotifyCanExecuteChanged();
+        SaveConfigurationCommand.NotifyCanExecuteChanged();
         _ = UpdatePreviewIconAsync();
     }
 
     partial void OnSelectedAccountChanged(ADAccount? value)
     {
+        if (IsEditing)
+        {
+            HasUnsavedChanges = true;
+        }
         SaveConfigurationCommand.NotifyCanExecuteChanged();
         if (HasValidationError && value != null)
         {
@@ -527,10 +589,27 @@ public partial class ExecutableManagementViewModel : ViewModelBase
 
     partial void OnWorkingDirectoryChanged(string value)
     {
+        if (IsEditing)
+        {
+            HasUnsavedChanges = true;
+        }
         if (HasValidationError && (string.IsNullOrWhiteSpace(value) || Directory.Exists(value)))
         {
             ClearValidation();
         }
+    }
+
+    partial void OnArgumentsChanged(string value)
+    {
+        if (IsEditing)
+        {
+            HasUnsavedChanges = true;
+        }
+    }
+
+    partial void OnHasUnsavedChangesChanged(bool value)
+    {
+        SaveConfigurationCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnIsEditingChanged(bool value)

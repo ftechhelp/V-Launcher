@@ -18,8 +18,9 @@ public interface IExecutableService
     /// Saves an executable configuration
     /// </summary>
     /// <param name="config">The executable configuration to save</param>
+    /// <param name="oldCustomIconPath">Optional old custom icon path to clear from cache when updating</param>
     /// <returns>The saved executable configuration</returns>
-    Task<ExecutableConfiguration> SaveConfigurationAsync(ExecutableConfiguration config);
+    Task<ExecutableConfiguration> SaveConfigurationAsync(ExecutableConfiguration config, string? oldCustomIconPath = null);
 
     /// <summary>
     /// Deletes an executable configuration by ID

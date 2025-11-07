@@ -30,9 +30,9 @@ public class SettingsViewModelTests : IDisposable
     {
         // Assert
         Assert.NotNull(_viewModel.Settings);
-        Assert.True(_viewModel.Settings.StartOnWindowsStart);
-        Assert.True(_viewModel.Settings.StartMinimized);
-        Assert.True(_viewModel.Settings.MinimizeOnClose);
+        Assert.False(_viewModel.Settings.StartOnWindowsStart);
+        Assert.False(_viewModel.Settings.StartMinimized);
+        Assert.False(_viewModel.Settings.MinimizeOnClose);
         Assert.False(_viewModel.IsLoading);
         Assert.False(_viewModel.IsSaving);
         Assert.Empty(_viewModel.StatusMessage);
@@ -96,9 +96,9 @@ public class SettingsViewModelTests : IDisposable
         await _viewModel.LoadSettingsCommand.ExecuteAsync(null);
 
         // Assert
-        Assert.True(_viewModel.Settings.StartOnWindowsStart);
-        Assert.True(_viewModel.Settings.StartMinimized);
-        Assert.True(_viewModel.Settings.MinimizeOnClose);
+        Assert.False(_viewModel.Settings.StartOnWindowsStart);
+        Assert.False(_viewModel.Settings.StartMinimized);
+        Assert.False(_viewModel.Settings.MinimizeOnClose);
         Assert.True(_viewModel.HasError);
         Assert.Contains("Failed to load settings", _viewModel.StatusMessage);
     }
@@ -199,18 +199,18 @@ public class SettingsViewModelTests : IDisposable
     public async Task ResetToDefaultsAsync_ShouldResetAllSettingsToDefaults()
     {
         // Arrange
-        _viewModel.Settings.StartOnWindowsStart = false;
-        _viewModel.Settings.StartMinimized = false;
-        _viewModel.Settings.MinimizeOnClose = false;
+        _viewModel.Settings.StartOnWindowsStart = true;
+        _viewModel.Settings.StartMinimized = true;
+        _viewModel.Settings.MinimizeOnClose = true;
 
         // Act
         await _viewModel.ResetToDefaultsCommand.ExecuteAsync(null);
 
         // Assert
-        Assert.True(_viewModel.Settings.StartOnWindowsStart);
-        Assert.True(_viewModel.Settings.StartMinimized);
-        Assert.True(_viewModel.Settings.MinimizeOnClose);
-        Assert.True(_mockRegistryService.IsStartupEnabled);
+        Assert.False(_viewModel.Settings.StartOnWindowsStart);
+        Assert.False(_viewModel.Settings.StartMinimized);
+        Assert.False(_viewModel.Settings.MinimizeOnClose);
+        Assert.False(_mockRegistryService.IsStartupEnabled);
         Assert.Contains("Settings reset to defaults", _viewModel.StatusMessage);
     }
 

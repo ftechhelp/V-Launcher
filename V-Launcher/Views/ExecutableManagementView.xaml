@@ -347,6 +347,14 @@
                                    Style="{StaticResource ErrorTextStyle}"
                                    Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVisibilityConverter}}"/>
                         
+                        <!-- Success Message -->
+                        <TextBlock Text="{Binding SuccessMessage}"
+                                   Foreground="{StaticResource SuccessGreenBrush}"
+                                   FontWeight="SemiBold"
+                                   Margin="0,5"
+                                   TextWrapping="Wrap"
+                                   Visibility="{Binding HasSuccessMessage, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        
                         <!-- Form Buttons -->
                         <StackPanel Orientation="Horizontal" 
                                     HorizontalAlignment="Right"

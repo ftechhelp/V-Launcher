@@ -169,23 +169,17 @@
                                FontWeight="SemiBold"/>
                     
                     <CheckBox Content="Start with Windows" 
-                              IsChecked="{Binding SettingsViewModel.Settings.StartOnWindowsStart}"
-                              Command="{Binding ToggleStartOnWindowsStartCommand}"
-                              CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}"
+                              IsChecked="{Binding SettingsViewModel.Settings.StartOnWindowsStart, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                               Style="{StaticResource SettingsCheckBoxStyle}"
                               Margin="0,0,15,0"/>
                     
                     <CheckBox Content="Start Minimized" 
-                              IsChecked="{Binding SettingsViewModel.Settings.StartMinimized}"
-                              Command="{Binding ToggleStartMinimizedCommand}"
-                              CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}"
+                              IsChecked="{Binding SettingsViewModel.Settings.StartMinimized, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                               Style="{StaticResource SettingsCheckBoxStyle}"
                               Margin="0,0,15,0"/>
                     
                     <CheckBox Content="Minimize on Close" 
-                              IsChecked="{Binding SettingsViewModel.Settings.MinimizeOnClose}"
-                              Command="{Binding ToggleMinimizeOnCloseCommand}"
-                              CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}"
+                              IsChecked="{Binding SettingsViewModel.Settings.MinimizeOnClose, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                               Style="{StaticResource SettingsCheckBoxStyle}"/>
                 </StackPanel>
             </Grid>

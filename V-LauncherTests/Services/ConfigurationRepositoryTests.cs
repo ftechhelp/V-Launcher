@@ -255,9 +255,9 @@ public class ConfigurationRepositoryTests : IDisposable
 
         // Assert
         Assert.NotNull(settings);
-        Assert.True(settings.StartOnWindowsStart);
-        Assert.True(settings.StartMinimized);
-        Assert.True(settings.MinimizeOnClose);
+        Assert.False(settings.StartOnWindowsStart);
+        Assert.False(settings.StartMinimized);
+        Assert.False(settings.MinimizeOnClose);
     }
 
     [Fact]

@@ -279,6 +279,33 @@
   - Update validation error messages to reflect expanded file type support
   - _Requirements: 2.2, 3.2, 3.5_
 
+- [x] 32. Fix custom icon editing and saving in executable configuration
+  - Investigate why custom icon changes don't save when editing an existing executable configuration
+  - Review the ExecutableManagementViewModel to ensure custom icon path is properly updated
+  - Check if the Save command properly persists custom icon changes to the configuration
+  - Verify that the file browser dialog for custom icons correctly updates the configuration
+  - Ensure the icon cache is properly cleared when custom icon is changed
+  - Test the complete workflow: add app → edit app → change custom icon → save → verify icon persists
+  - Add visual feedback or confirmation when custom icon is successfully saved
+  - _Requirements: 2.2, 3.3, 3.4_
+
+- [x] 33. Fix checkbox settings not saving when clicked
+
+
+
+
+
+  - Investigate why checkbox settings (Start with Windows, Start Minimized, Minimize on Close) don't persist when toggled
+  - Review the binding between MainWindow.xaml checkboxes and SettingsViewModel.Settings properties
+  - Identify the conflict between two-way binding and command execution in checkbox controls
+  - Make ApplicationSettings implement INotifyPropertyChanged to enable proper property change notifications
+  - Update the checkbox bindings to use Mode=TwoWay and UpdateSourceTrigger=PropertyChanged
+  - Remove the redundant Command bindings or refactor to use only property binding with auto-save
+  - Add property change handlers in SettingsViewModel to auto-save when settings properties change
+  - Test that clicking each checkbox immediately saves the setting and persists after application restart
+  - Verify that the registry is properly updated when "Start with Windows" is toggled
+  - _Requirements: Application settings persistence and user experience_
+
 ## Application Status - CORE COMPLETE ✅
 
 The AD User Launcher application has been fully implemented and is ready for production use:
