@@ -1,0 +1,99 @@
+stages:
+  - build
+  - test
+  - release
+
+variables:
+  DOTNET_VERSION: "9.0"
+  PROJECT_NAME: "V-Launcher"
+  SOLUTION_FILE: "V-Launcher.sln"
+  PUBLISH_OUTPUT: "publish"
+
+# Build job - runs on all commits
+build:
+  stage: build
+  image: mcr.microsoft.com/dotnet/sdk:9.0
+  script:
+    - dotnet restore $SOLUTION_FILE
+    - dotnet build $SOLUTION_FILE --configuration Release --no-restore
+  artifacts:
+    paths:
+      - V-Launcher/bin/Release/
+      - V-LauncherTests/bin/Release/
+    expire_in: 1 hour
+  tags:
+    - windows
+
+# Test job - runs on all commits
+test:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:9.0
+  dependencies:
+    - build
+  script:
+    - dotnet test $SOLUTION_FILE --configuration Release --no-build --verbosity normal
+  tags:
+    - windows
+
+# Release job - only runs on tags
+release:
+  stage: release
+  image: mcr.microsoft.com/dotnet/sdk:9.0
+  only:
+    - tags
+  script:
+    # Publish self-contained Windows x64 build
+    - dotnet publish V-Launcher/V-Launcher.csproj -c Release -r win-x64 --self-contained true -o $PUBLISH_OUTPUT/win-x64
+    
+    # Publish framework-dependent build (smaller size)
+    - dotnet publish V-Launcher/V-Launcher.csproj -c Release -r win-x64 --self-contained false -o $PUBLISH_OUTPUT/win-x64-framework-dependent
+    
+    # Create release archives (using PowerShell for Windows compatibility)
+    - powershell -Command "Compress-Archive -Path $PUBLISH_OUTPUT/win-x64/* -DestinationPath $PUBLISH_OUTPUT/${PROJECT_NAME}-${CI_COMMIT_TAG}-win-x64.zip -Force"
+    - powershell -Command "Compress-Archive -Path $PUBLISH_OUTPUT/win-x64-framework-dependent/* -DestinationPath $PUBLISH_OUTPUT/${PROJECT_NAME}-${CI_COMMIT_TAG}-win-x64-framework-dependent.zip -Force"
+    
+    # Generate release notes
+    - |
+      cat > release_notes.md << EOF
+      # V-Launcher ${CI_COMMIT_TAG}
+      
+      ## Downloads
+      
+      - **Self-Contained Build** (Includes .NET Runtime): ${PROJECT_NAME}-${CI_COMMIT_TAG}-win-x64.zip
+      - **Framework-Dependent Build** (Requires .NET 9.0 Runtime): ${PROJECT_NAME}-${CI_COMMIT_TAG}-win-x64-framework-dependent.zip
+      
+      ## System Requirements
+      
+      - Windows 10 (1809+) or Windows 11
+      - .NET 9.0 Desktop Runtime (for framework-dependent build only)
+      
+      ## Installation
+      
+      1. Download the appropriate ZIP file
+      2. Extract to your desired location
+      3. Run V-Launcher.exe
+      
+      ## What's New
+      
+      See the [README](README.md) for full feature list and documentation.
+      EOF
+  
+  artifacts:
+    paths:
+      - $PUBLISH_OUTPUT/*.zip
+      - release_notes.md
+    expire_in: never
+  
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: "Release $CI_COMMIT_TAG"
+    description: release_notes.md
+    assets:
+      links:
+        - name: "${PROJECT_NAME}-${CI_COMMIT_TAG}-win-x64.zip"
+          url: "${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/${PUBLISH_OUTPUT}/${PROJECT_NAME}-${CI_COMMIT_TAG}-win-x64.zip"
+        - name: "${PROJECT_NAME}-${CI_COMMIT_TAG}-win-x64-framework-dependent.zip"
+          url: "${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/${PUBLISH_OUTPUT}/${PROJECT_NAME}-${CI_COMMIT_TAG}-win-x64-framework-dependent.zip"
+  
+  tags:
+    - windows

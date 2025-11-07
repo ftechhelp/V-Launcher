@@ -369,6 +369,71 @@ V-Launcher follows the MVVM (Model-View-ViewModel) architectural pattern:
 
 The application uses dependency injection for service management and follows SOLID principles for maintainable, testable code.
 
+### GitLab CI/CD Pipeline
+
+The project includes automated CI/CD pipeline configuration (`.gitlab-ci.yml`) that handles building, testing, and releasing.
+
+#### Pipeline Stages
+
+1. **Build**: Compiles the solution on every commit
+2. **Test**: Runs all unit and integration tests
+3. **Release**: Creates release artifacts (only triggered by tags)
+
+#### Creating a Release
+
+To create a new release, push a version tag:
+
+```bash
+# Create a semantic version tag
+git tag -a v1.0.0 -m "Release version 1.0.0"
+
+# Push the tag to GitLab
+git push origin v1.0.0
+```
+
+The pipeline will automatically:
+- Build and test the application
+- Create two release variants:
+  - **Self-contained** (~150MB): Includes .NET runtime, no installation required
+  - **Framework-dependent** (~5MB): Requires .NET 9.0 Desktop Runtime
+- Generate ZIP archives
+- Create a GitLab Release with downloadable artifacts
+
+#### Release Variants
+
+**Self-Contained Build** (`V-Launcher-vX.X.X-win-x64.zip`):
+- Includes .NET 9.0 runtime
+- Works on any Windows 10+ machine
+- Recommended for end users
+
+**Framework-Dependent Build** (`V-Launcher-vX.X.X-win-x64-framework-dependent.zip`):
+- Requires .NET 9.0 Desktop Runtime installed
+- Smaller download size
+- Recommended when .NET is already installed
+
+#### Runner Requirements
+
+The GitLab Runner must have:
+- Windows 10 or Windows Server 2019+
+- .NET 9.0 SDK installed
+- PowerShell 5.1 or later
+- Tagged with `windows`
+
+#### Manual Build for Release
+
+If you need to build manually:
+
+```bash
+# Self-contained build
+dotnet publish V-Launcher/V-Launcher.csproj -c Release -r win-x64 --self-contained true -o publish/win-x64
+
+# Framework-dependent build
+dotnet publish V-Launcher/V-Launcher.csproj -c Release -r win-x64 --self-contained false -o publish/win-x64-fd
+
+# Create ZIP archive (PowerShell)
+Compress-Archive -Path publish/win-x64/* -DestinationPath V-Launcher-v1.0.0-win-x64.zip
+```
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
