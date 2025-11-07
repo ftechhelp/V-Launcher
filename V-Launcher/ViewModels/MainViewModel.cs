@@ -52,8 +52,8 @@ public partial class MainViewModel : ViewModelBase
 
         // Initialize child ViewModels
         _launcherViewModel = new LauncherViewModel(executableService, credentialService, processLauncher);
-        _credentialManagementViewModel = new CredentialManagementViewModel(credentialService);
-        _executableManagementViewModel = new ExecutableManagementViewModel(executableService, credentialService);
+        _credentialManagementViewModel = new CredentialManagementViewModel(credentialService, RefreshDataAfterChangesAsync);
+        _executableManagementViewModel = new ExecutableManagementViewModel(executableService, credentialService, RefreshDataAfterChangesAsync);
 
         // Set initial view to launcher
         _currentViewModel = _launcherViewModel;
@@ -62,7 +62,7 @@ public partial class MainViewModel : ViewModelBase
         ShowLauncherViewCommand = new RelayCommand(ShowLauncherView, CanNavigate);
         ShowCredentialManagementViewCommand = new RelayCommand(ShowCredentialManagementView, CanNavigate);
         ShowExecutableManagementViewCommand = new RelayCommand(ShowExecutableManagementView, CanNavigate);
-        RefreshAllDataCommand = new AsyncRelayCommand(RefreshAllDataAsync, CanRefreshData);
+
         InitializeApplicationCommand = new AsyncRelayCommand(InitializeApplicationAsync);
 
         // Subscribe to child ViewModel events for status updates
@@ -77,7 +77,7 @@ public partial class MainViewModel : ViewModelBase
     public IRelayCommand ShowLauncherViewCommand { get; }
     public IRelayCommand ShowCredentialManagementViewCommand { get; }
     public IRelayCommand ShowExecutableManagementViewCommand { get; }
-    public IAsyncRelayCommand RefreshAllDataCommand { get; }
+
     public IAsyncRelayCommand InitializeApplicationCommand { get; }
 
     #endregion
@@ -88,18 +88,28 @@ public partial class MainViewModel : ViewModelBase
     {
         CurrentViewModel = LauncherViewModel;
         ClearStatus();
+        // Automatically refresh launcher data when switching to this view
+        _ = LauncherViewModel.LoadExecutablesCommand.ExecuteAsync(null);
     }
 
     private void ShowCredentialManagementView()
     {
         CurrentViewModel = CredentialManagementViewModel;
         ClearStatus();
+        // Automatically refresh credential data when switching to this view
+        _ = CredentialManagementViewModel.LoadAccountsCommand.ExecuteAsync(null);
     }
 
     private void ShowExecutableManagementView()
     {
         CurrentViewModel = ExecutableManagementViewModel;
         ClearStatus();
+        // Automatically refresh executable management data when switching to this view
+        _ = Task.Run(async () =>
+        {
+            await ExecutableManagementViewModel.RefreshAvailableAccountsAsync();
+            await ExecutableManagementViewModel.LoadConfigurationsCommand.ExecuteAsync(null);
+        });
     }
 
     private bool CanNavigate() => !IsInitializing;
@@ -158,50 +168,7 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    private async Task RefreshAllDataAsync()
-    {
-        try
-        {
-            SetStatus("Refreshing all data...");
-            _logger.LogInformation("Starting data refresh");
 
-            // Refresh data in all ViewModels with individual error handling
-            var refreshTasks = new List<Task>();
-
-            refreshTasks.Add(SafeExecuteAsync(
-                () => CredentialManagementViewModel.LoadAccountsCommand.ExecuteAsync(null),
-                "credential data refresh"));
-
-            refreshTasks.Add(SafeExecuteAsync(
-                () => ExecutableManagementViewModel.LoadConfigurationsCommand.ExecuteAsync(null),
-                "executable configuration refresh"));
-
-            refreshTasks.Add(SafeExecuteAsync(
-                () => LauncherViewModel.RefreshExecutablesCommand.ExecuteAsync(null),
-                "launcher data refresh"));
-
-            await Task.WhenAll(refreshTasks);
-
-            SetStatus("All data refreshed successfully");
-            _logger.LogInformation("Data refresh completed successfully");
-            
-            // Clear status after a delay
-            _ = Task.Delay(2000).ContinueWith(_ => 
-            {
-                if (!IsDisposed)
-                {
-                    ClearStatus();
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during data refresh");
-            SetError($"Failed to refresh data: {ex.Message}");
-        }
-    }
-
-    private bool CanRefreshData() => !IsInitializing;
 
     #endregion
 
@@ -293,7 +260,7 @@ public partial class MainViewModel : ViewModelBase
         ShowLauncherViewCommand.NotifyCanExecuteChanged();
         ShowCredentialManagementViewCommand.NotifyCanExecuteChanged();
         ShowExecutableManagementViewCommand.NotifyCanExecuteChanged();
-        RefreshAllDataCommand.NotifyCanExecuteChanged();
+
     }
 
     #endregion
@@ -359,8 +326,18 @@ public partial class MainViewModel : ViewModelBase
     /// </summary>
     public async Task RefreshDataAfterChangesAsync()
     {
-        // Refresh launcher data when accounts or executable configurations change
-        await LauncherViewModel.RefreshExecutablesCommand.ExecuteAsync(null);
+        try
+        {
+            // Refresh launcher data when accounts or executable configurations change
+            await LauncherViewModel.LoadExecutablesCommand.ExecuteAsync(null);
+            
+            // Also refresh executable management data to ensure account list is up to date
+            await ExecutableManagementViewModel.RefreshAvailableAccountsAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error refreshing data after changes");
+        }
     }
 
     #endregion

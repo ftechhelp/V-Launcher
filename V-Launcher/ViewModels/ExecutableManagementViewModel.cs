@@ -15,6 +15,7 @@ public partial class ExecutableManagementViewModel : ViewModelBase
 {
     private readonly IExecutableService _executableService;
     private readonly ICredentialService _credentialService;
+    private readonly Func<Task>? _onDataChanged;
 
     [ObservableProperty]
     private ObservableCollection<ExecutableConfiguration> _configurations = new();
@@ -58,10 +59,11 @@ public partial class ExecutableManagementViewModel : ViewModelBase
     [ObservableProperty]
     private BitmapImage? _previewIcon;
 
-    public ExecutableManagementViewModel(IExecutableService executableService, ICredentialService credentialService)
+    public ExecutableManagementViewModel(IExecutableService executableService, ICredentialService credentialService, Func<Task>? onDataChanged = null)
     {
         _executableService = executableService;
         _credentialService = credentialService;
+        _onDataChanged = onDataChanged;
         
         AddConfigurationCommand = new AsyncRelayCommand(AddConfigurationAsync, CanExecuteConfigurationCommand);
         EditConfigurationCommand = new AsyncRelayCommand(EditConfigurationAsync, CanEditConfiguration);
@@ -144,6 +146,12 @@ public partial class ExecutableManagementViewModel : ViewModelBase
 
             ClearForm();
             IsEditing = false;
+            
+            // Notify that data has changed to refresh other views
+            if (_onDataChanged != null)
+            {
+                _ = _onDataChanged();
+            }
         }
         catch (Exception ex)
         {
@@ -166,6 +174,12 @@ public partial class ExecutableManagementViewModel : ViewModelBase
             Configurations.Remove(SelectedConfiguration);
             SelectedConfiguration = null;
             ClearForm();
+            
+            // Notify that data has changed to refresh other views
+            if (_onDataChanged != null)
+            {
+                _ = _onDataChanged();
+            }
         }
         catch (Exception ex)
         {
@@ -229,6 +243,14 @@ public partial class ExecutableManagementViewModel : ViewModelBase
     {
         await LoadAccountsAsync();
         await LoadConfigurationsAsync();
+    }
+    
+    /// <summary>
+    /// Refreshes available accounts - called when switching to this view
+    /// </summary>
+    public async Task RefreshAvailableAccountsAsync()
+    {
+        await LoadAccountsAsync();
     }
 
     /// <summary>

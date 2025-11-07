@@ -72,7 +72,7 @@ public class ErrorHandlingTests : IDisposable
         await mainViewModel.HandleApplicationStartupAsync();
 
         // Act - This should not throw even if refresh operations fail
-        await mainViewModel.RefreshAllDataCommand.ExecuteAsync(null);
+        await mainViewModel.RefreshDataAfterChangesAsync();
 
         // Assert - Application should still be responsive
         Assert.False(mainViewModel.IsInitializing);

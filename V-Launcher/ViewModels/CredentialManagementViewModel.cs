@@ -16,6 +16,7 @@ namespace V_Launcher.ViewModels;
 public partial class CredentialManagementViewModel : ViewModelBase
 {
     private readonly ICredentialService _credentialService;
+    private readonly Func<Task>? _onDataChanged;
 
     [ObservableProperty]
     private ObservableCollection<ADAccount> _accounts = new();
@@ -50,9 +51,10 @@ public partial class CredentialManagementViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isLoading;
 
-    public CredentialManagementViewModel(ICredentialService credentialService)
+    public CredentialManagementViewModel(ICredentialService credentialService, Func<Task>? onDataChanged = null)
     {
         _credentialService = credentialService;
+        _onDataChanged = onDataChanged;
         
         // Initialize commands
         AddAccountCommand = new AsyncRelayCommand(AddAccountAsync, CanExecuteAccountCommand);
@@ -142,6 +144,12 @@ public partial class CredentialManagementViewModel : ViewModelBase
 
             ClearForm();
             IsEditing = false;
+            
+            // Notify that data has changed to refresh other views
+            if (_onDataChanged != null)
+            {
+                _ = _onDataChanged();
+            }
         }
         catch (Exception ex)
         {
@@ -164,6 +172,12 @@ public partial class CredentialManagementViewModel : ViewModelBase
             Accounts.Remove(SelectedAccount);
             SelectedAccount = null;
             ClearForm();
+            
+            // Notify that data has changed to refresh other views
+            if (_onDataChanged != null)
+            {
+                _ = _onDataChanged();
+            }
         }
         catch (Exception ex)
         {

@@ -34,6 +34,8 @@ public partial class LauncherViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isLaunching;
 
+    private bool _isRefreshing;
+
     public LauncherViewModel(
         IExecutableService executableService,
         ICredentialService credentialService,
@@ -150,8 +152,12 @@ public partial class LauncherViewModel : ViewModelBase
 
     private async Task LoadExecutablesAsync()
     {
+        // Prevent concurrent refreshes
+        if (_isRefreshing) return;
+        
         try
         {
+            _isRefreshing = true;
             IsLoading = true;
             ClearStatus();
 
@@ -201,6 +207,7 @@ public partial class LauncherViewModel : ViewModelBase
         finally
         {
             IsLoading = false;
+            _isRefreshing = false;
         }
     }
 

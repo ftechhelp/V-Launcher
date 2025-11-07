@@ -94,17 +94,7 @@
                         Command="{Binding ShowExecutableManagementViewCommand}"
                         Style="{StaticResource NavigationButtonStyle}"/>
                 
-                <!-- Refresh Button -->
-                <Button Content="Refresh All" 
-                        Command="{Binding RefreshAllDataCommand}"
-                        HorizontalAlignment="Right"
-                        Margin="20,5,5,5">
-                    <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
-                            <Setter Property="Background" Value="#FF27AE60"/>
-                        </Style>
-                    </Button.Style>
-                </Button>
+
             </StackPanel>
         </Border>
         

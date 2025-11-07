@@ -104,37 +104,7 @@
                 <Setter Property="Margin" Value="0,10"/>
             </Style>
             
-            <Style x:Key="RefreshButtonStyle" TargetType="Button">
-                <Setter Property="Margin" Value="10"/>
-                <Setter Property="Padding" Value="15,8"/>
-                <Setter Property="MinWidth" Value="100"/>
-                <Setter Property="Background" Value="#FF27AE60"/>
-                <Setter Property="Foreground" Value="White"/>
-                <Setter Property="BorderThickness" Value="0"/>
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}"
-                                    CornerRadius="4"
-                                    Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="Center"
-                                                  VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#FF229954"/>
-                                </Trigger>
-                                <Trigger Property="IsPressed" Value="True">
-                                    <Setter Property="Background" Value="#FF1E7E34"/>
-                                </Trigger>
-                                <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Background" Value="#FFBDC3C7"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
+
             
             <!-- Default icon for executables without custom icons -->
             <DrawingImage x:Key="DefaultExecutableIcon">
@@ -160,15 +130,7 @@
                    Text="Application Launcher" 
                    Style="{StaticResource HeaderTextStyle}"/>
         
-        <!-- Refresh Button -->
-        <StackPanel Grid.Row="1" 
-                    Orientation="Horizontal" 
-                    HorizontalAlignment="Right"
-                    Margin="0,0,0,10">
-            <Button Content="🔄 Refresh" 
-                    Command="{Binding RefreshExecutablesCommand}"
-                    Style="{StaticResource RefreshButtonStyle}"/>
-        </StackPanel>
+
         
         <!-- Main Content Area -->
         <ScrollViewer Grid.Row="2" 

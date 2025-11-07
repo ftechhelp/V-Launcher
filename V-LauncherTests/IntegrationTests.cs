@@ -240,9 +240,11 @@ public class IntegrationTests : IDisposable
         executableViewModel.SelectedAccount = executableViewModel.AvailableAccounts.First();
         await executableViewModel.SaveConfigurationCommand.ExecuteAsync(null);
 
-        // Act 3: Navigate to launcher and refresh
+        // Act 3: Navigate to launcher (automatic refresh will occur)
         mainViewModel.ShowLauncherViewCommand.Execute(null);
-        await mainViewModel.RefreshAllDataCommand.ExecuteAsync(null);
+        
+        // Wait a moment for the automatic refresh to complete
+        await Task.Delay(100);
 
         // Assert: Launcher displays the executable
         var launcherViewModel = mainViewModel.LauncherViewModel;
