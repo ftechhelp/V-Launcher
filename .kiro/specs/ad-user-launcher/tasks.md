@@ -161,7 +161,12 @@
   - Add error handling for registry access permissions
   - _Requirements: Automatic application startup functionality_
 
-- [ ] 23. Add application settings UI controls
+- [x] 23. Add application settings UI controls
+
+
+
+
+
   - Add settings section to the main window with three checkboxes
   - Position checkboxes beside the navigation buttons area
   - Implement data binding to ApplicationSettings properties

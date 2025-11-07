@@ -70,6 +70,55 @@
             <Setter Property="BorderBrush" Value="#FFDEE2E6"/>
             <Setter Property="BorderThickness" Value="0,1,0,0"/>
         </Style>
+        
+        <Style x:Key="SettingsCheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="CheckBoxBorder"
+                                    Width="16"
+                                    Height="16"
+                                    Background="White"
+                                    BorderBrush="#FF95A5A6"
+                                    BorderThickness="1"
+                                    CornerRadius="2"
+                                    Margin="0,0,5,0"
+                                    VerticalAlignment="Center">
+                                <Path x:Name="CheckMark"
+                                      Data="M 0 2 L 2 4 L 6 0"
+                                      Stroke="#FF27AE60"
+                                      StrokeThickness="2"
+                                      Visibility="Collapsed"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+                            </Border>
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="#FFF8F9FA"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#FF3498DB"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="#FFECF0F1"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#FFBDC3C7"/>
+                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="#FFECF0F1"/>
+                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#FFBDC3C7"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -83,19 +132,58 @@
         <Border Grid.Row="0" 
                 Background="#FF2C3E50" 
                 Padding="10">
-            <StackPanel Orientation="Horizontal">
-                <Button Content="Launcher" 
-                        Command="{Binding ShowLauncherViewCommand}"
-                        Style="{StaticResource NavigationButtonStyle}"/>
-                <Button Content="Manage Accounts" 
-                        Command="{Binding ShowCredentialManagementViewCommand}"
-                        Style="{StaticResource NavigationButtonStyle}"/>
-                <Button Content="Manage Apps" 
-                        Command="{Binding ShowExecutableManagementViewCommand}"
-                        Style="{StaticResource NavigationButtonStyle}"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
                 
-
-            </StackPanel>
+                <!-- Navigation Buttons -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button Content="Launcher" 
+                            Command="{Binding ShowLauncherViewCommand}"
+                            Style="{StaticResource NavigationButtonStyle}"/>
+                    <Button Content="Manage Accounts" 
+                            Command="{Binding ShowCredentialManagementViewCommand}"
+                            Style="{StaticResource NavigationButtonStyle}"/>
+                    <Button Content="Manage Apps" 
+                            Command="{Binding ShowExecutableManagementViewCommand}"
+                            Style="{StaticResource NavigationButtonStyle}"/>
+                </StackPanel>
+                
+                <!-- Application Settings -->
+                <StackPanel Grid.Column="2" 
+                            Orientation="Horizontal" 
+                            VerticalAlignment="Center"
+                            Margin="20,0,0,0">
+                    <TextBlock Text="Settings:" 
+                               Foreground="White" 
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"
+                               FontWeight="SemiBold"/>
+                    
+                    <CheckBox Content="Start with Windows" 
+                              IsChecked="{Binding ApplicationSettings.StartOnWindowsStart}"
+                              Command="{Binding ToggleStartOnWindowsStartCommand}"
+                              CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}"
+                              Style="{StaticResource SettingsCheckBoxStyle}"
+                              Margin="0,0,15,0"/>
+                    
+                    <CheckBox Content="Start Minimized" 
+                              IsChecked="{Binding ApplicationSettings.StartMinimized}"
+                              Command="{Binding ToggleStartMinimizedCommand}"
+                              CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}"
+                              Style="{StaticResource SettingsCheckBoxStyle}"
+                              Margin="0,0,15,0"/>
+                    
+                    <CheckBox Content="Minimize on Close" 
+                              IsChecked="{Binding ApplicationSettings.MinimizeOnClose}"
+                              Command="{Binding ToggleMinimizeOnCloseCommand}"
+                              CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}"
+                              Style="{StaticResource SettingsCheckBoxStyle}"/>
+                </StackPanel>
+            </Grid>
         </Border>
         
         <!-- Main Content Area -->

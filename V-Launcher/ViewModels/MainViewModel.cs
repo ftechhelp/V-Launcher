@@ -73,6 +73,9 @@ public partial class MainViewModel : ViewModelBase
         ShowExecutableManagementViewCommand = new RelayCommand(ShowExecutableManagementView, CanNavigate);
 
         InitializeApplicationCommand = new AsyncRelayCommand(InitializeApplicationAsync);
+        ToggleStartOnWindowsStartCommand = new AsyncRelayCommand<bool>(ToggleStartOnWindowsStartAsync);
+        ToggleStartMinimizedCommand = new RelayCommand<bool>(ToggleStartMinimized);
+        ToggleMinimizeOnCloseCommand = new RelayCommand<bool>(ToggleMinimizeOnClose);
 
         // Subscribe to child ViewModel events for status updates
         SubscribeToChildViewModelEvents();
@@ -88,6 +91,9 @@ public partial class MainViewModel : ViewModelBase
     public IRelayCommand ShowExecutableManagementViewCommand { get; }
 
     public IAsyncRelayCommand InitializeApplicationCommand { get; }
+    public IAsyncRelayCommand<bool> ToggleStartOnWindowsStartCommand { get; }
+    public IRelayCommand<bool> ToggleStartMinimizedCommand { get; }
+    public IRelayCommand<bool> ToggleMinimizeOnCloseCommand { get; }
 
     #endregion
 
@@ -286,6 +292,54 @@ public partial class MainViewModel : ViewModelBase
         {
             _ = SaveApplicationSettingsAsync();
         }
+    }
+
+    #endregion
+
+    #region Settings Commands
+
+    /// <summary>
+    /// Toggles the Start with Windows setting
+    /// </summary>
+    private async Task ToggleStartOnWindowsStartAsync(bool enabled)
+    {
+        await SetStartOnWindowsStartAsync(enabled);
+    }
+
+    /// <summary>
+    /// Toggles the Start Minimized setting
+    /// </summary>
+    private void ToggleStartMinimized(bool enabled)
+    {
+        ApplicationSettings.StartMinimized = enabled;
+        SetStatus($"Start minimized {(enabled ? "enabled" : "disabled")}");
+        
+        // Clear status after a delay
+        _ = Task.Delay(2000).ContinueWith(_ => 
+        {
+            if (!IsDisposed)
+            {
+                ClearStatus();
+            }
+        });
+    }
+
+    /// <summary>
+    /// Toggles the Minimize on Close setting
+    /// </summary>
+    private void ToggleMinimizeOnClose(bool enabled)
+    {
+        ApplicationSettings.MinimizeOnClose = enabled;
+        SetStatus($"Minimize on close {(enabled ? "enabled" : "disabled")}");
+        
+        // Clear status after a delay
+        _ = Task.Delay(2000).ContinueWith(_ => 
+        {
+            if (!IsDisposed)
+            {
+                ClearStatus();
+            }
+        });
     }
 
     #endregion
