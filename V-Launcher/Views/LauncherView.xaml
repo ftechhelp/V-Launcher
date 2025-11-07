@@ -11,9 +11,10 @@
     
     <UserControl.Resources>
         <ResourceDictionary>
-            <!-- Import converters -->
+            <!-- Import converters and theme -->
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Converters.xaml"/>
+                <ResourceDictionary Source="RedWhiteTheme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             
             <!-- Styles for consistent UI -->
@@ -22,15 +23,15 @@
                 <Setter Property="FontWeight" Value="Bold"/>
                 <Setter Property="Margin" Value="0,0,0,20"/>
                 <Setter Property="HorizontalAlignment" Value="Center"/>
-                <Setter Property="Foreground" Value="#FF2C3E50"/>
+                <Setter Property="Foreground" Value="{StaticResource PrimaryRedBrush}"/>
             </Style>
             
             <Style x:Key="ExecutableButtonStyle" TargetType="Button">
                 <Setter Property="Width" Value="120"/>
                 <Setter Property="Height" Value="120"/>
                 <Setter Property="Margin" Value="15"/>
-                <Setter Property="Background" Value="White"/>
-                <Setter Property="BorderBrush" Value="#FFDEE2E6"/>
+                <Setter Property="Background" Value="{StaticResource PrimaryWhiteBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource MediumGrayBrush}"/>
                 <Setter Property="BorderThickness" Value="2"/>
                 <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Template">
@@ -46,17 +47,17 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#FFF8F9FA"/>
-                                    <Setter Property="BorderBrush" Value="#FF3498DB"/>
+                                    <Setter Property="Background" Value="{StaticResource OffWhiteBrush}"/>
+                                    <Setter Property="BorderBrush" Value="{StaticResource PrimaryRedBrush}"/>
                                     <Setter Property="BorderThickness" Value="3"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter Property="Background" Value="#FFE9ECEF"/>
-                                    <Setter Property="BorderBrush" Value="#FF2980B9"/>
+                                    <Setter Property="Background" Value="{StaticResource LightGrayBrush}"/>
+                                    <Setter Property="BorderBrush" Value="{StaticResource DarkRedBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Background" Value="#FFF8F9FA"/>
-                                    <Setter Property="BorderBrush" Value="#FFCED4DA"/>
+                                    <Setter Property="Background" Value="{StaticResource OffWhiteBrush}"/>
+                                    <Setter Property="BorderBrush" Value="{StaticResource DarkGrayBrush}"/>
                                     <Setter Property="Opacity" Value="0.6"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
@@ -78,7 +79,7 @@
                 <Setter Property="TextAlignment" Value="Center"/>
                 <Setter Property="TextWrapping" Value="Wrap"/>
                 <Setter Property="Margin" Value="0,8,0,0"/>
-                <Setter Property="Foreground" Value="#FF495057"/>
+                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
                 <Setter Property="MaxWidth" Value="100"/>
             </Style>
             
@@ -87,7 +88,7 @@
                 <Setter Property="TextAlignment" Value="Center"/>
                 <Setter Property="TextWrapping" Value="Wrap"/>
                 <Setter Property="Margin" Value="0,2,0,0"/>
-                <Setter Property="Foreground" Value="#FF6C757D"/>
+                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
                 <Setter Property="MaxWidth" Value="100"/>
             </Style>
             
@@ -99,7 +100,7 @@
             
             <Style x:Key="EmptyStateTextStyle" TargetType="TextBlock">
                 <Setter Property="FontSize" Value="16"/>
-                <Setter Property="Foreground" Value="#FF6C757D"/>
+                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
                 <Setter Property="TextAlignment" Value="Center"/>
                 <Setter Property="Margin" Value="0,10"/>
             </Style>
@@ -145,11 +146,12 @@
                         <ProgressBar IsIndeterminate="True" 
                                      Width="200" 
                                      Height="20"
-                                     Margin="0,0,0,15"/>
+                                     Margin="0,0,0,15"
+                                     Style="{StaticResource RedWhiteProgressBarStyle}"/>
                         <TextBlock Text="Loading applications..." 
                                    HorizontalAlignment="Center"
                                    FontSize="14"
-                                   Foreground="#FF6C757D"/>
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
                     </StackPanel>
                 </Grid>
                 
@@ -209,8 +211,8 @@
         
         <!-- Launch Status -->
         <Border Grid.Row="3" 
-                Background="#FFF8F9FA"
-                BorderBrush="#FFDEE2E6"
+                Background="{StaticResource OffWhiteBrush}"
+                BorderBrush="{StaticResource MediumGrayBrush}"
                 BorderThickness="0,1,0,0"
                 Padding="15,10"
                 Visibility="{Binding IsLaunching, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -219,11 +221,12 @@
                 <ProgressBar IsIndeterminate="True" 
                              Width="150" 
                              Height="16"
-                             Margin="0,0,15,0"/>
+                             Margin="0,0,15,0"
+                             Style="{StaticResource RedWhiteProgressBarStyle}"/>
                 <TextBlock Text="{Binding StatusMessage}" 
                            VerticalAlignment="Center"
                            FontWeight="SemiBold"
-                           Foreground="#FF495057"/>
+                           Foreground="{StaticResource TextPrimaryBrush}"/>
             </StackPanel>
         </Border>
     </Grid>

@@ -37,27 +37,29 @@
             <Setter Property="Margin" Value="5"/>
             <Setter Property="Padding" Value="15,8"/>
             <Setter Property="MinWidth" Value="120"/>
-            <Setter Property="Background" Value="#FF3498DB"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{StaticResource PrimaryRedBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource PrimaryWhiteBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                                CornerRadius="3"
+                                CornerRadius="4"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#FF2980B9"/>
+                                <Setter Property="Background" Value="{StaticResource LightRedBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#FF21618C"/>
+                                <Setter Property="Background" Value="{StaticResource DarkRedBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Background" Value="#FFBDC3C7"/>
+                                <Setter Property="Background" Value="{StaticResource MediumGrayBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource DarkGrayBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -66,15 +68,16 @@
         </Style>
         
         <Style x:Key="StatusBarStyle" TargetType="StatusBar">
-            <Setter Property="Background" Value="#FFF8F9FA"/>
-            <Setter Property="BorderBrush" Value="#FFDEE2E6"/>
+            <Setter Property="Background" Value="{StaticResource OffWhiteBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource MediumGrayBrush}"/>
             <Setter Property="BorderThickness" Value="0,1,0,0"/>
         </Style>
         
         <Style x:Key="SettingsCheckBoxStyle" TargetType="CheckBox">
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{StaticResource PrimaryWhiteBrush}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
@@ -82,16 +85,16 @@
                             <Border x:Name="CheckBoxBorder"
                                     Width="16"
                                     Height="16"
-                                    Background="White"
-                                    BorderBrush="#FF95A5A6"
-                                    BorderThickness="1"
-                                    CornerRadius="2"
+                                    Background="{StaticResource PrimaryWhiteBrush}"
+                                    BorderBrush="{StaticResource MediumGrayBrush}"
+                                    BorderThickness="2"
+                                    CornerRadius="3"
                                     Margin="0,0,5,0"
                                     VerticalAlignment="Center">
                                 <Path x:Name="CheckMark"
                                       Data="M 0 2 L 2 4 L 6 0"
-                                      Stroke="#FF27AE60"
-                                      StrokeThickness="2"
+                                      Stroke="{StaticResource PrimaryRedBrush}"
+                                      StrokeThickness="2.5"
                                       Visibility="Collapsed"
                                       HorizontalAlignment="Center"
                                       VerticalAlignment="Center"/>
@@ -101,18 +104,19 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
-                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="#FFF8F9FA"/>
+                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="{StaticResource OffWhiteBrush}"/>
+                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="{StaticResource PrimaryRedBrush}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#FF3498DB"/>
+                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="{StaticResource LightRedBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="#FFECF0F1"/>
+                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="{StaticResource LightGrayBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="#FFBDC3C7"/>
-                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="#FFECF0F1"/>
-                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#FFBDC3C7"/>
+                                <Setter Property="Foreground" Value="{StaticResource DarkGrayBrush}"/>
+                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="{StaticResource LightGrayBrush}"/>
+                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="{StaticResource DarkGrayBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -130,7 +134,7 @@
         
         <!-- Navigation Bar -->
         <Border Grid.Row="0" 
-                Background="#FF2C3E50" 
+                Background="{StaticResource DarkRedBrush}" 
                 Padding="10">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -158,7 +162,7 @@
                             VerticalAlignment="Center"
                             Margin="20,0,0,0">
                     <TextBlock Text="Settings:" 
-                               Foreground="White" 
+                               Foreground="{StaticResource PrimaryWhiteBrush}" 
                                VerticalAlignment="Center"
                                Margin="0,0,10,0"
                                FontWeight="SemiBold"/>
@@ -188,7 +192,7 @@
         
         <!-- Main Content Area -->
         <Border Grid.Row="1" 
-                Background="White"
+                Background="{StaticResource PrimaryWhiteBrush}"
                 Padding="0">
             <ContentPresenter Content="{Binding CurrentViewModel}"/>
         </Border>
@@ -210,10 +214,10 @@
                                VerticalAlignment="Center">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
-                                <Setter Property="Foreground" Value="#FF495057"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding HasError}" Value="True">
-                                        <Setter Property="Foreground" Value="#FFE74C3C"/>
+                                        <Setter Property="Foreground" Value="{StaticResource ErrorRedBrush}"/>
                                         <Setter Property="FontWeight" Value="SemiBold"/>
                                     </DataTrigger>
                                 </Style.Triggers>

@@ -72,6 +72,9 @@ public partial class MainViewModel : ViewModelBase
 
         // Subscribe to child ViewModel events for status updates
         SubscribeToChildViewModelEvents();
+        
+        // Subscribe to launcher events
+        _launcherViewModel.ApplicationLaunchedSuccessfully += OnApplicationLaunchedSuccessfully;
 
         // Initialize application
         _ = InitializeApplicationAsync();
@@ -189,6 +192,12 @@ public partial class MainViewModel : ViewModelBase
     #endregion
 
     #region Child ViewModel Event Handling
+
+    private void OnApplicationLaunchedSuccessfully(object? sender, EventArgs e)
+    {
+        // Minimize to tray after successful application launch
+        MinimizeMainWindowToTray();
+    }
 
     private void SubscribeToChildViewModelEvents()
     {
@@ -489,6 +498,12 @@ public partial class MainViewModel : ViewModelBase
         try
         {
             _logger.LogDebug("Disposing MainViewModel");
+
+            // Unsubscribe from events
+            if (LauncherViewModel != null)
+            {
+                LauncherViewModel.ApplicationLaunchedSuccessfully -= OnApplicationLaunchedSuccessfully;
+            }
 
             // Dispose child ViewModels safely
             try { LauncherViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing LauncherViewModel"); }

@@ -11,9 +11,10 @@
     
     <UserControl.Resources>
         <ResourceDictionary>
-            <!-- Import converters -->
+            <!-- Import converters and theme -->
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Converters.xaml"/>
+                <ResourceDictionary Source="RedWhiteTheme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             
             <!-- Styles for consistent UI -->
@@ -21,24 +22,57 @@
                 <Setter Property="FontSize" Value="18"/>
                 <Setter Property="FontWeight" Value="Bold"/>
                 <Setter Property="Margin" Value="0,0,0,10"/>
+                <Setter Property="Foreground" Value="{StaticResource PrimaryRedBrush}"/>
             </Style>
             
             <Style x:Key="LabelStyle" TargetType="TextBlock">
                 <Setter Property="FontWeight" Value="SemiBold"/>
                 <Setter Property="Margin" Value="0,5,0,2"/>
                 <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
             </Style>
             
             <Style x:Key="InputStyle" TargetType="Control">
                 <Setter Property="Margin" Value="0,2,0,8"/>
                 <Setter Property="Padding" Value="8,4"/>
                 <Setter Property="MinHeight" Value="30"/>
+                <Setter Property="Background" Value="{StaticResource PrimaryWhiteBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource MediumGrayBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
             </Style>
             
             <Style x:Key="ButtonStyle" TargetType="Button">
                 <Setter Property="Margin" Value="5"/>
                 <Setter Property="Padding" Value="15,8"/>
                 <Setter Property="MinWidth" Value="80"/>
+                <Setter Property="Background" Value="{StaticResource PrimaryRedBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource PrimaryWhiteBrush}"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    CornerRadius="4"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource LightRedBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource DarkRedBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Background" Value="{StaticResource MediumGrayBrush}"/>
+                                    <Setter Property="Foreground" Value="{StaticResource DarkGrayBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
             
             <Style x:Key="BrowseButtonStyle" TargetType="Button">
@@ -46,10 +80,39 @@
                 <Setter Property="Padding" Value="8,4"/>
                 <Setter Property="MinWidth" Value="60"/>
                 <Setter Property="Content" Value="Browse..."/>
+                <Setter Property="Background" Value="{StaticResource LightGrayBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource MediumGrayBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="FontWeight" Value="Medium"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="3"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource MediumGrayBrush}"/>
+                                    <Setter Property="BorderBrush" Value="{StaticResource PrimaryRedBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource DarkGrayBrush}"/>
+                                    <Setter Property="Foreground" Value="{StaticResource PrimaryWhiteBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
             
             <Style x:Key="ErrorTextStyle" TargetType="TextBlock">
-                <Setter Property="Foreground" Value="Red"/>
+                <Setter Property="Foreground" Value="{StaticResource ErrorRedBrush}"/>
                 <Setter Property="FontWeight" Value="SemiBold"/>
                 <Setter Property="Margin" Value="0,5"/>
                 <Setter Property="TextWrapping" Value="Wrap"/>
@@ -85,7 +148,7 @@
             </Grid.ColumnDefinitions>
             
             <!-- Configuration List -->
-            <GroupBox Grid.Column="0" Header="Configured Applications" Padding="10">
+            <GroupBox Grid.Column="0" Header="Configured Applications" Padding="10" Style="{StaticResource RedWhiteGroupBoxStyle}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
@@ -97,11 +160,10 @@
                              ItemsSource="{Binding Configurations}"
                              SelectedItem="{Binding SelectedConfiguration}"
                              SelectionMode="Single"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             Style="{StaticResource RedWhiteListBoxStyle}">
                         <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="Padding" Value="8"/>
-                                <Setter Property="Margin" Value="2"/>
+                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource RedWhiteListBoxItemStyle}">
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                             </Style>
                         </ListBox.ItemContainerStyle>
@@ -132,10 +194,10 @@
                                                    FontWeight="SemiBold"/>
                                         <TextBlock Text="{Binding ExecutablePath}" 
                                                    FontSize="11" 
-                                                   Foreground="Gray"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
                                                    TextTrimming="CharacterEllipsis"/>
                                         <TextBlock FontSize="11" 
-                                                   Foreground="Gray">
+                                                   Foreground="{StaticResource TextSecondaryBrush}">
                                             <Run Text="Account: "/>
                                             <Run Text="{Binding ADAccountId, StringFormat='ID: {0}'}"/>
                                         </TextBlock>
@@ -160,8 +222,8 @@
                                 Command="{Binding DeleteConfigurationCommand}">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
-                                    <Setter Property="Background" Value="#FFE74C3C"/>
-                                    <Setter Property="Foreground" Value="White"/>
+                                    <Setter Property="Background" Value="{StaticResource ErrorRedBrush}"/>
+                                    <Setter Property="Foreground" Value="{StaticResource PrimaryWhiteBrush}"/>
                                 </Style>
                             </Button.Style>
                         </Button>
@@ -173,13 +235,15 @@
             <GroupBox Grid.Column="2" 
                       Header="Configuration Details"
                       Padding="15"
-                      Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}">
+                      Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}"
+                      Style="{StaticResource RedWhiteGroupBoxStyle}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                         <!-- Display Name -->
                         <TextBlock Text="Display Name:" Style="{StaticResource LabelStyle}"/>
                         <TextBox Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}"
-                                 Style="{StaticResource InputStyle}"
+                                 Style="{StaticResource RedWhiteTextBoxStyle}"
+                                 Margin="0,2,0,8"
                                  TabIndex="1"/>
                         
                         <!-- Executable Path -->
@@ -191,7 +255,8 @@
                             </Grid.ColumnDefinitions>
                             <TextBox Grid.Column="0"
                                      Text="{Binding ExecutablePath, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource InputStyle}"
+                                     Style="{StaticResource RedWhiteTextBoxStyle}"
+                                     Margin="0,2,0,8"
                                      TabIndex="2"/>
                             <Button Grid.Column="1"
                                     Command="{Binding BrowseExecutableCommand}"
@@ -203,13 +268,14 @@
                         <TextBlock Text="AD Account:" Style="{StaticResource LabelStyle}"/>
                         <ComboBox ItemsSource="{Binding AvailableAccounts}"
                                   SelectedItem="{Binding SelectedAccount}"
-                                  Style="{StaticResource InputStyle}"
+                                  Style="{StaticResource RedWhiteComboBoxStyle}"
+                                  Margin="0,2,0,8"
                                   TabIndex="4">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel>
                                         <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{Binding Username}" FontSize="11" Foreground="Gray"/>
+                                        <TextBlock Text="{Binding Username}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
@@ -225,7 +291,8 @@
                             </Grid.ColumnDefinitions>
                             <TextBox Grid.Column="0"
                                      Text="{Binding CustomIconPath, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource InputStyle}"
+                                     Style="{StaticResource RedWhiteTextBoxStyle}"
+                                     Margin="0,2,0,8"
                                      TabIndex="5"/>
                             <Button Grid.Column="1"
                                     Command="{Binding BrowseCustomIconCommand}"
@@ -252,7 +319,8 @@
                         <!-- Arguments (Optional) -->
                         <TextBlock Text="Command Line Arguments (Optional):" Style="{StaticResource LabelStyle}"/>
                         <TextBox Text="{Binding Arguments, UpdateSourceTrigger=PropertyChanged}"
-                                 Style="{StaticResource InputStyle}"
+                                 Style="{StaticResource RedWhiteTextBoxStyle}"
+                                 Margin="0,2,0,8"
                                  TabIndex="8"/>
                         
                         <!-- Working Directory -->
@@ -264,7 +332,8 @@
                             </Grid.ColumnDefinitions>
                             <TextBox Grid.Column="0"
                                      Text="{Binding WorkingDirectory, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource InputStyle}"
+                                     Style="{StaticResource RedWhiteTextBoxStyle}"
+                                     Margin="0,2,0,8"
                                      TabIndex="9"/>
                             <Button Grid.Column="1"
                                     Command="{Binding BrowseWorkingDirectoryCommand}"
@@ -287,8 +356,8 @@
                                     TabIndex="11">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
-                                        <Setter Property="Background" Value="#FF27AE60"/>
-                                        <Setter Property="Foreground" Value="White"/>
+                                        <Setter Property="Background" Value="{StaticResource SuccessGreenBrush}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource PrimaryWhiteBrush}"/>
                                     </Style>
                                 </Button.Style>
                             </Button>
@@ -311,7 +380,8 @@
                 <ProgressBar IsIndeterminate="True" 
                              Width="200" 
                              Height="20"
-                             Margin="0,0,10,0"/>
+                             Margin="0,0,10,0"
+                             Style="{StaticResource RedWhiteProgressBarStyle}"/>
                 <TextBlock Text="Loading..." 
                            VerticalAlignment="Center"/>
             </StackPanel>

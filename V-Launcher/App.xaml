@@ -3,6 +3,34 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:V_Launcher">
     <Application.Resources>
-         
+        <!-- Red and White Color Scheme -->
+        <SolidColorBrush x:Key="PrimaryRedBrush" Color="#FFD32F2F"/>
+        <SolidColorBrush x:Key="DarkRedBrush" Color="#FFB71C1C"/>
+        <SolidColorBrush x:Key="LightRedBrush" Color="#FFEF5350"/>
+        <SolidColorBrush x:Key="AccentRedBrush" Color="#FFF44336"/>
+        <SolidColorBrush x:Key="PrimaryWhiteBrush" Color="#FFFFFFFF"/>
+        <SolidColorBrush x:Key="OffWhiteBrush" Color="#FFFAFAFA"/>
+        <SolidColorBrush x:Key="LightGrayBrush" Color="#FFF5F5F5"/>
+        <SolidColorBrush x:Key="MediumGrayBrush" Color="#FFE0E0E0"/>
+        <SolidColorBrush x:Key="DarkGrayBrush" Color="#FF757575"/>
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FF212121"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#FF757575"/>
+        <SolidColorBrush x:Key="ErrorRedBrush" Color="#FFDC2626"/>
+        <SolidColorBrush x:Key="SuccessGreenBrush" Color="#FF16A085"/>
+        
+        <!-- Color Values for Reference -->
+        <Color x:Key="PrimaryRed">#FFD32F2F</Color>
+        <Color x:Key="DarkRed">#FFB71C1C</Color>
+        <Color x:Key="LightRed">#FFEF5350</Color>
+        <Color x:Key="AccentRed">#FFF44336</Color>
+        <Color x:Key="PrimaryWhite">#FFFFFFFF</Color>
+        <Color x:Key="OffWhite">#FFFAFAFA</Color>
+        <Color x:Key="LightGray">#FFF5F5F5</Color>
+        <Color x:Key="MediumGray">#FFE0E0E0</Color>
+        <Color x:Key="DarkGray">#FF757575</Color>
+        <Color x:Key="TextPrimary">#FF212121</Color>
+        <Color x:Key="TextSecondary">#FF757575</Color>
+        <Color x:Key="ErrorRed">#FFDC2626</Color>
+        <Color x:Key="SuccessGreen">#FF16A085</Color>
     </Application.Resources>
 </Application>

@@ -8,17 +8,17 @@ public class ApplicationSettings
     /// <summary>
     /// Whether the application should start automatically when Windows starts
     /// </summary>
-    public bool StartOnWindowsStart { get; set; } = true;
+    public bool StartOnWindowsStart { get; set; } = false;
 
     /// <summary>
     /// Whether the application should start minimized to the system tray
     /// </summary>
-    public bool StartMinimized { get; set; } = true;
+    public bool StartMinimized { get; set; } = false;
 
     /// <summary>
     /// Whether the application should minimize to tray instead of closing when the close button is clicked
     /// </summary>
-    public bool MinimizeOnClose { get; set; } = true;
+    public bool MinimizeOnClose { get; set; } = false;
 
     /// <summary>
     /// Creates a copy of the current settings

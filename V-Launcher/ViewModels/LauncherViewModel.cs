@@ -61,6 +61,15 @@ public partial class LauncherViewModel : ViewModelBase
 
     #endregion
 
+    #region Events
+
+    /// <summary>
+    /// Event raised when an application is successfully launched
+    /// </summary>
+    public event EventHandler? ApplicationLaunchedSuccessfully;
+
+    #endregion
+
     #region Command Implementations
 
     private async Task LaunchExecutableAsync(ExecutableItem? executableItem)
@@ -102,6 +111,9 @@ public partial class LauncherViewModel : ViewModelBase
             if (success)
             {
                 SetStatus($"Successfully launched {executableItem.Configuration.DisplayName}");
+                
+                // Trigger minimize to tray after successful launch
+                ApplicationLaunchedSuccessfully?.Invoke(this, EventArgs.Empty);
                 
                 // Clear status after a delay
                 _ = Task.Delay(3000).ContinueWith(_ => 
