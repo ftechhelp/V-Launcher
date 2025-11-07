@@ -190,6 +190,7 @@
 
 
 
+
   - Create SettingsViewModel or extend MainViewModel with settings properties
   - Add commands for toggling each setting with immediate persistence
   - Implement change notification and automatic saving of settings
