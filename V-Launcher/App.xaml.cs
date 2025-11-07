@@ -116,6 +116,7 @@ namespace V_Launcher
                     services.AddSingleton<ICredentialService, CredentialService>();
                     services.AddSingleton<IExecutableService, ExecutableService>();
                     services.AddSingleton<IProcessLauncher, ProcessLauncher>();
+                    services.AddSingleton<IStartupRegistryService, StartupRegistryService>();
 
                     // Register ViewModels with logging support
                     services.AddTransient<MainViewModel>();

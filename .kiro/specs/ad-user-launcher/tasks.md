@@ -149,7 +149,12 @@
   - Update ConfigurationRepository to save and load application settings
   - _Requirements: User preference management and application behavior control_
 
-- [ ] 22. Implement Windows startup registry integration
+- [x] 22. Implement Windows startup registry integration
+
+
+
+
+
   - Create service for managing Windows startup registry entries
   - Add methods to enable/disable application startup with Windows
   - Implement registry key management for HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run

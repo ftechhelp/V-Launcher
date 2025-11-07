@@ -13,6 +13,8 @@ public partial class MainViewModel : ViewModelBase
     private readonly ICredentialService _credentialService;
     private readonly IExecutableService _executableService;
     private readonly IProcessLauncher _processLauncher;
+    private readonly IStartupRegistryService _startupRegistryService;
+    private readonly IConfigurationRepository _configurationRepository;
     private readonly ILogger<MainViewModel> _logger;
 
     [ObservableProperty]
@@ -39,15 +41,22 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     private bool _hasError;
 
+    [ObservableProperty]
+    private Models.ApplicationSettings _applicationSettings = new();
+
     public MainViewModel(
         ICredentialService credentialService,
         IExecutableService executableService,
         IProcessLauncher processLauncher,
+        IStartupRegistryService startupRegistryService,
+        IConfigurationRepository configurationRepository,
         ILogger<MainViewModel> logger)
     {
         _credentialService = credentialService;
         _executableService = executableService;
         _processLauncher = processLauncher;
+        _startupRegistryService = startupRegistryService;
+        _configurationRepository = configurationRepository;
         _logger = logger;
 
         // Initialize child ViewModels
@@ -130,6 +139,11 @@ public partial class MainViewModel : ViewModelBase
 
             // Load initial data for all ViewModels with individual error handling
             var initializationTasks = new List<Task>();
+
+            // Load application settings first
+            await SafeExecuteAsync(
+                () => LoadApplicationSettingsAsync(),
+                "application settings initialization");
 
             // Initialize each ViewModel separately to isolate errors
             initializationTasks.Add(SafeExecuteAsync(
@@ -263,6 +277,120 @@ public partial class MainViewModel : ViewModelBase
         ShowCredentialManagementViewCommand.NotifyCanExecuteChanged();
         ShowExecutableManagementViewCommand.NotifyCanExecuteChanged();
 
+    }
+
+    partial void OnApplicationSettingsChanged(Models.ApplicationSettings value)
+    {
+        // Save settings when they change (but not during initialization)
+        if (!IsInitializing)
+        {
+            _ = SaveApplicationSettingsAsync();
+        }
+    }
+
+    #endregion
+
+    #region Application Settings Management
+
+    /// <summary>
+    /// Loads application settings from configuration
+    /// </summary>
+    private async Task LoadApplicationSettingsAsync()
+    {
+        try
+        {
+            var settings = await _configurationRepository.LoadSettingsAsync();
+            ApplicationSettings = settings;
+            
+            // Sync registry state with loaded settings
+            await SyncStartupRegistryStateAsync();
+            
+            _logger.LogDebug("Application settings loaded successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading application settings");
+            // Use default settings on error
+            ApplicationSettings = new Models.ApplicationSettings();
+        }
+    }
+
+    /// <summary>
+    /// Saves application settings to configuration
+    /// </summary>
+    private async Task SaveApplicationSettingsAsync()
+    {
+        try
+        {
+            await _configurationRepository.SaveSettingsAsync(ApplicationSettings);
+            _logger.LogDebug("Application settings saved successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving application settings");
+            SetError($"Failed to save settings: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Handles changes to the StartOnWindowsStart setting
+    /// </summary>
+    /// <param name="enabled">Whether startup should be enabled</param>
+    public async Task SetStartOnWindowsStartAsync(bool enabled)
+    {
+        try
+        {
+            var success = await _startupRegistryService.SetStartupEnabledAsync(enabled);
+            
+            if (success)
+            {
+                ApplicationSettings.StartOnWindowsStart = enabled;
+                await SaveApplicationSettingsAsync();
+                
+                var status = enabled ? "enabled" : "disabled";
+                SetStatus($"Windows startup {status} successfully");
+                _logger.LogInformation("Windows startup setting changed to {Enabled}", enabled);
+            }
+            else
+            {
+                SetError("Failed to update Windows startup setting. You may need administrator privileges.");
+                _logger.LogWarning("Failed to update Windows startup registry setting");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating Windows startup setting");
+            SetError($"Error updating startup setting: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Syncs the registry state with the current application settings
+    /// </summary>
+    private async Task SyncStartupRegistryStateAsync()
+    {
+        try
+        {
+            var registryEnabled = await _startupRegistryService.IsStartupEnabledAsync();
+            
+            // If there's a mismatch, update the registry to match the settings
+            if (registryEnabled != ApplicationSettings.StartOnWindowsStart)
+            {
+                var success = await _startupRegistryService.SetStartupEnabledAsync(ApplicationSettings.StartOnWindowsStart);
+                
+                if (!success)
+                {
+                    _logger.LogWarning("Failed to sync startup registry state with application settings");
+                    // Update the setting to match the actual registry state
+                    ApplicationSettings.StartOnWindowsStart = registryEnabled;
+                    await SaveApplicationSettingsAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error syncing startup registry state");
+        }
     }
 
     #endregion
