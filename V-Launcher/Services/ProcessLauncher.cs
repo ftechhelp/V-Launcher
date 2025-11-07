@@ -120,8 +120,9 @@ public class ProcessLauncher : IProcessLauncher
                     wShowWindow = 1 // SW_SHOWNORMAL
                 };
 
-                // Build command line
-                var commandLine = BuildCommandLine(config);
+                // Determine the actual executable and command line to use
+                // Some file types need to be launched through their handlers
+                GetExecutableAndCommandLine(config, out var applicationName, out var commandLine);
                 var workingDirectory = GetWorkingDirectory(config);
 
                 // Launch process with alternate credentials
@@ -130,7 +131,7 @@ public class ProcessLauncher : IProcessLauncher
                     lpDomain: account.Domain,
                     lpPassword: password,
                     dwLogonFlags: LogonFlags.LOGON_WITH_PROFILE,
-                    lpApplicationName: config.ExecutablePath,
+                    lpApplicationName: applicationName,
                     lpCommandLine: commandLine,
                     dwCreationFlags: ProcessCreationFlags.CREATE_DEFAULT_ERROR_MODE,
                     lpEnvironment: IntPtr.Zero,
@@ -202,6 +203,53 @@ public class ProcessLauncher : IProcessLauncher
             return false;
 
         return true;
+    }
+
+    /// <summary>
+    /// Determines the actual executable and command line to use based on file type.
+    /// Some file types (.msc, .vbs, .ps1, .wsf) need to be launched through their handlers.
+    /// </summary>
+    private static void GetExecutableAndCommandLine(ExecutableConfiguration config, out string applicationName, out string? commandLine)
+    {
+        var extension = Path.GetExtension(config.ExecutablePath).ToLowerInvariant();
+        var targetPath = config.ExecutablePath.Contains(' ') ? $"\"{config.ExecutablePath}\"" : config.ExecutablePath;
+
+        switch (extension)
+        {
+            case ".msc":
+                // Microsoft Management Console snap-ins need mmc.exe
+                applicationName = Path.Combine(Environment.SystemDirectory, "mmc.exe");
+                commandLine = string.IsNullOrWhiteSpace(config.Arguments)
+                    ? $"\"{applicationName}\" {targetPath}"
+                    : $"\"{applicationName}\" {targetPath} {config.Arguments}";
+                break;
+
+            case ".vbs":
+            case ".wsf":
+                // VBScript and Windows Script Files need wscript.exe
+                applicationName = Path.Combine(Environment.SystemDirectory, "wscript.exe");
+                commandLine = string.IsNullOrWhiteSpace(config.Arguments)
+                    ? $"\"{applicationName}\" {targetPath}"
+                    : $"\"{applicationName}\" {targetPath} {config.Arguments}";
+                break;
+
+            case ".ps1":
+                // PowerShell scripts need powershell.exe
+                applicationName = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
+                // Use -File parameter for PowerShell scripts
+                commandLine = string.IsNullOrWhiteSpace(config.Arguments)
+                    ? $"\"{applicationName}\" -File {targetPath}"
+                    : $"\"{applicationName}\" -File {targetPath} {config.Arguments}";
+                break;
+
+            default:
+                // Standard executables (.exe, .com, .bat, .cmd, .msi) can be launched directly
+                applicationName = config.ExecutablePath;
+                commandLine = string.IsNullOrWhiteSpace(config.Arguments)
+                    ? null
+                    : $"{targetPath} {config.Arguments}";
+                break;
+        }
     }
 
     /// <summary>

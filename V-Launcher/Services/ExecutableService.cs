@@ -46,7 +46,7 @@ public class ExecutableService : IExecutableService
             throw new ArgumentException("Executable path is required", nameof(config));
 
         if (!ValidateExecutablePath(config.ExecutablePath))
-            throw new ArgumentException($"Executable path is not valid or accessible: {config.ExecutablePath}", nameof(config));
+            throw new ArgumentException($"Executable path is not valid or accessible. Supported file types: .exe, .com, .bat, .cmd, .msi, .msc, .vbs, .ps1, .wsf. Path: {config.ExecutablePath}", nameof(config));
 
         // Validate custom icon path if provided
         if (!string.IsNullOrEmpty(config.CustomIconPath) && !File.Exists(config.CustomIconPath))
@@ -104,6 +104,12 @@ public class ExecutableService : IExecutableService
         return await ExtractExecutableIconAsync(config.ExecutablePath);
     }
 
+    /// <summary>
+    /// Validates that an executable path is valid and accessible.
+    /// Supports standard executables (.exe, .com), batch files (.bat, .cmd), 
+    /// Windows Installer packages (.msi), MMC snap-ins (.msc), and script files (.vbs, .ps1, .wsf).
+    /// Note: Script files and .msc files will be launched through their associated handlers by Windows.
+    /// </summary>
     public bool ValidateExecutablePath(string executablePath)
     {
         if (string.IsNullOrWhiteSpace(executablePath))
@@ -117,7 +123,18 @@ public class ExecutableService : IExecutableService
 
             // Check if it's an executable file
             var extension = Path.GetExtension(executablePath).ToLowerInvariant();
-            var executableExtensions = new[] { ".exe", ".com", ".bat", ".cmd", ".msi" };
+            var executableExtensions = new[] 
+            { 
+                ".exe",  // Standard executables
+                ".com",  // DOS executables
+                ".bat",  // Batch files
+                ".cmd",  // Command scripts
+                ".msi",  // Windows Installer packages
+                ".msc",  // Microsoft Management Console snap-ins
+                ".vbs",  // VBScript files
+                ".ps1",  // PowerShell scripts
+                ".wsf"   // Windows Script Files
+            };
             
             if (!executableExtensions.Contains(extension))
                 return false;

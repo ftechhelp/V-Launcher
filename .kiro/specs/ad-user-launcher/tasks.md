@@ -265,7 +265,12 @@
   - Test that the dropdown opens on click and displays all available AD accounts
   - _Requirements: 2.3_
 
-- [ ] 31. Expand executable validation to support .msc and other Windows system files
+- [x] 31. Expand executable validation to support .msc and other Windows system files
+
+
+
+
+
   - Update ValidateExecutablePath method in ExecutableService.cs to accept .msc files
   - Add .msc extension to the list of valid executable extensions
   - Consider adding other common Windows executable types (.vbs, .ps1, .wsf, etc.)

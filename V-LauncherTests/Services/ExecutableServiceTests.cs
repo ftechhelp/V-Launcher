@@ -96,6 +96,62 @@ public class ExecutableServiceTests : IDisposable
     }
 
     [Fact]
+    public void ValidateExecutablePath_WithMscFile_ReturnsTrue()
+    {
+        // Arrange - Create a dummy .msc file
+        var mscFilePath = Path.Combine(_tempTestDir, "test.msc");
+        File.WriteAllText(mscFilePath, "<?xml version=\"1.0\"?><MMC_ConsoleFile></MMC_ConsoleFile>");
+
+        // Act
+        var isValid = _executableService.ValidateExecutablePath(mscFilePath);
+
+        // Assert
+        Assert.True(isValid);
+    }
+
+    [Fact]
+    public void ValidateExecutablePath_WithVbsFile_ReturnsTrue()
+    {
+        // Arrange - Create a dummy .vbs file
+        var vbsFilePath = Path.Combine(_tempTestDir, "test.vbs");
+        File.WriteAllText(vbsFilePath, "WScript.Echo \"Test\"");
+
+        // Act
+        var isValid = _executableService.ValidateExecutablePath(vbsFilePath);
+
+        // Assert
+        Assert.True(isValid);
+    }
+
+    [Fact]
+    public void ValidateExecutablePath_WithPs1File_ReturnsTrue()
+    {
+        // Arrange - Create a dummy .ps1 file
+        var ps1FilePath = Path.Combine(_tempTestDir, "test.ps1");
+        File.WriteAllText(ps1FilePath, "Write-Host \"Test\"");
+
+        // Act
+        var isValid = _executableService.ValidateExecutablePath(ps1FilePath);
+
+        // Assert
+        Assert.True(isValid);
+    }
+
+    [Fact]
+    public void ValidateExecutablePath_WithWsfFile_ReturnsTrue()
+    {
+        // Arrange - Create a dummy .wsf file
+        var wsfFilePath = Path.Combine(_tempTestDir, "test.wsf");
+        File.WriteAllText(wsfFilePath, "<?xml version=\"1.0\"?><job></job>");
+
+        // Act
+        var isValid = _executableService.ValidateExecutablePath(wsfFilePath);
+
+        // Assert
+        Assert.True(isValid);
+    }
+
+    [Fact]
     public async Task ExtractExecutableIconAsync_WithValidExe_ReturnsIcon()
     {
         // Arrange - Use notepad.exe which should have an icon
@@ -235,6 +291,34 @@ public class ExecutableServiceTests : IDisposable
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() =>
             _executableService.SaveConfigurationAsync(config));
+    }
+
+    [Fact]
+    public async Task SaveConfigurationAsync_WithMscFile_SavesSuccessfully()
+    {
+        // Arrange - Create a dummy .msc file
+        var mscFilePath = Path.Combine(_tempTestDir, "test.msc");
+        File.WriteAllText(mscFilePath, "<?xml version=\"1.0\"?><MMC_ConsoleFile></MMC_ConsoleFile>");
+
+        var config = new ExecutableConfiguration
+        {
+            DisplayName = "Test MMC Console",
+            ExecutablePath = mscFilePath,
+            ADAccountId = Guid.NewGuid()
+        };
+
+        // Act
+        var savedConfig = await _executableService.SaveConfigurationAsync(config);
+
+        // Assert
+        Assert.Equal(config.Id, savedConfig.Id);
+        Assert.Equal(config.DisplayName, savedConfig.DisplayName);
+        Assert.Equal(config.ExecutablePath, savedConfig.ExecutablePath);
+
+        // Verify it was actually saved
+        var configurations = await _executableService.GetConfigurationsAsync();
+        Assert.Single(configurations);
+        Assert.Equal(config.Id, configurations.First().Id);
     }
 
     [Fact]
