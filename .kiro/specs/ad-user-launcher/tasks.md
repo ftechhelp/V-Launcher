@@ -250,6 +250,30 @@
   - Update feature list and usage guide sections with new functionality
   - _Requirements: Complete and accurate documentation for all application features_
 
+## Bug Fixes (New)
+
+- [x] 30. Fix AD account dropdown interaction in executable configuration
+
+
+
+
+  - Investigate and fix the ComboBox control in ExecutableManagementView.xaml that doesn't open on click
+  - The dropdown currently only responds to scroll wheel but not to mouse clicks
+  - Review the RedWhiteComboBoxStyle template in RedWhiteTheme.xaml
+  - Add or fix the ToggleButton component in the ComboBox template to handle click events
+  - Ensure the PART_Popup opens correctly when clicking the dropdown area
+  - Test that the dropdown opens on click and displays all available AD accounts
+  - _Requirements: 2.3_
+
+- [ ] 31. Expand executable validation to support .msc and other Windows system files
+  - Update ValidateExecutablePath method in ExecutableService.cs to accept .msc files
+  - Add .msc extension to the list of valid executable extensions
+  - Consider adding other common Windows executable types (.vbs, .ps1, .wsf, etc.)
+  - Ensure the ProcessLauncher can properly launch .msc files with alternate credentials
+  - Test launching system management consoles like dsa.msc with specified AD accounts
+  - Update validation error messages to reflect expanded file type support
+  - _Requirements: 2.2, 3.2, 3.5_
+
 ## Application Status - CORE COMPLETE ✅
 
 The AD User Launcher application has been fully implemented and is ready for production use:
