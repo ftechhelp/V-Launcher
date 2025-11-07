@@ -78,13 +78,42 @@ public partial class SettingsViewModel : ViewModelBase
             _logger.LogDebug("Loading application settings");
 
             var loadedSettings = await _configurationRepository.LoadSettingsAsync();
-            Settings = loadedSettings ?? new ApplicationSettings();
-
-            // Sync registry state with loaded settings
-            await SyncStartupRegistryStateAsync();
-
-            SetStatus("Settings loaded successfully");
-            _logger.LogInformation("Application settings loaded successfully");
+            
+            // Check if we have existing settings with old defaults (all true)
+            if (loadedSettings != null && 
+                loadedSettings.StartOnWindowsStart == true && 
+                loadedSettings.StartMinimized == true && 
+                loadedSettings.MinimizeOnClose == true)
+            {
+                _logger.LogInformation("Detected old default settings, migrating to new defaults (all false)");
+                
+                // Migrate to new defaults
+                Settings = new ApplicationSettings
+                {
+                    StartOnWindowsStart = false,
+                    StartMinimized = false,
+                    MinimizeOnClose = false
+                };
+                
+                // Update registry to match new default
+                await _startupRegistryService.SetStartupEnabledAsync(false);
+                
+                // Save the migrated settings
+                await SaveSettingsAsync();
+                
+                SetStatus("Settings migrated to new defaults (all unchecked)");
+                _logger.LogInformation("Settings successfully migrated to new defaults");
+            }
+            else
+            {
+                Settings = loadedSettings ?? new ApplicationSettings();
+                
+                // Sync registry state with loaded settings
+                await SyncStartupRegistryStateAsync();
+                
+                SetStatus("Settings loaded successfully");
+                _logger.LogInformation("Application settings loaded successfully");
+            }
         }
         catch (Exception ex)
         {
@@ -251,6 +280,39 @@ public partial class SettingsViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Forces settings to use new default values (unchecked) - for migration purposes
+    /// </summary>
+    public async Task ForceResetToNewDefaultsAsync()
+    {
+        try
+        {
+            ClearStatus();
+            _logger.LogDebug("Forcing reset to new default values");
+
+            // Create new settings with explicit false values
+            Settings = new ApplicationSettings
+            {
+                StartOnWindowsStart = false,
+                StartMinimized = false,
+                MinimizeOnClose = false
+            };
+            
+            // Update registry to match new default startup setting (false)
+            await _startupRegistryService.SetStartupEnabledAsync(false);
+            
+            await SaveSettingsAsync();
+            
+            SetStatus("Settings updated to new defaults (all unchecked)");
+            _logger.LogInformation("Settings forced to new default values (all false)");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error forcing reset to new defaults");
+            SetError($"Error updating settings: {ex.Message}");
+        }
+    }
+
     #endregion
 
     #region Validation
@@ -402,6 +464,9 @@ public partial class SettingsViewModel : ViewModelBase
         // Update command can execute states when loading state changes
         SaveSettingsCommand.NotifyCanExecuteChanged();
         ResetToDefaultsCommand.NotifyCanExecuteChanged();
+        ToggleStartOnWindowsStartCommand.NotifyCanExecuteChanged();
+        ToggleStartMinimizedCommand.NotifyCanExecuteChanged();
+        ToggleMinimizeOnCloseCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnIsSavingChanged(bool value)
@@ -409,6 +474,9 @@ public partial class SettingsViewModel : ViewModelBase
         // Update command can execute states when saving state changes
         SaveSettingsCommand.NotifyCanExecuteChanged();
         ResetToDefaultsCommand.NotifyCanExecuteChanged();
+        ToggleStartOnWindowsStartCommand.NotifyCanExecuteChanged();
+        ToggleStartMinimizedCommand.NotifyCanExecuteChanged();
+        ToggleMinimizeOnCloseCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnSettingsChanged(ApplicationSettings value)
