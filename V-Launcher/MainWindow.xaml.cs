@@ -66,11 +66,10 @@ namespace V_Launcher
             // Load the application icon from embedded resource
             try
             {
-                var iconStream = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/V-Launcher_Logo.png"))?.Stream;
+                var iconStream = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/V-Launcher_Logo.ico"))?.Stream;
                 if (iconStream != null)
                 {
-                    using var bitmap = new Bitmap(iconStream);
-                    _notifyIcon.Icon = System.Drawing.Icon.FromHandle(bitmap.GetHicon());
+                    _notifyIcon.Icon = new System.Drawing.Icon(iconStream);
                 }
                 else
                 {

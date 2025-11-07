@@ -77,7 +77,15 @@ byte[] decryptedData = ProtectedData.Unprotect(
 ```
 - Contains encrypted AD account credentials
 - Executable configuration mappings
-- Application settings and preferences
+- Application settings and preferences (startup behavior, minimize options)
+
+#### Windows Registry
+```
+HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run
+```
+- Contains startup entry when "Start on Windows Start" is enabled
+- Stores executable path for automatic startup
+- Only accessible by current user (no elevated privileges required)
 
 #### Backup Configuration
 ```
@@ -113,6 +121,13 @@ The application verifies file permissions on startup and will recreate the confi
 3. **Regular Backups**: Backup configuration files to secure locations
 4. **Antivirus Protection**: Maintain up-to-date antivirus software
 
+#### Startup and Tray Security
+1. **Lock Workstation**: Always lock your computer when stepping away
+2. **Exit When Not Needed**: Fully exit the application instead of leaving it running in system tray
+3. **Review Startup Items**: Regularly check Task Manager startup tab for unexpected entries
+4. **Disable Auto-Start**: Disable automatic startup if not required for your workflow
+5. **Monitor Background Processes**: Be aware when V-Launcher is running in the system tray
+
 ### For Administrators
 
 #### Deployment Security
@@ -126,6 +141,75 @@ The application verifies file permissions on startup and will recreate the confi
 2. **File Access Auditing**: Enable auditing for configuration file access
 3. **Process Monitoring**: Monitor for unexpected process launches with alternate credentials
 
+## Application Startup and System Tray Security
+
+### Windows Startup Integration
+
+#### Registry-Based Startup
+- **Location**: `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run`
+- **Scope**: User-level startup (no system-wide or elevated privileges)
+- **Security**: Only the current user can modify their own startup entries
+- **Persistence**: Startup entry persists until explicitly disabled or application is uninstalled
+
+#### Security Considerations
+1. **No Elevated Privileges**: Startup does not require or grant administrative rights
+2. **User Context**: Application always runs in the user's security context
+3. **Malware Protection**: Antivirus software monitors registry startup locations
+4. **Audit Trail**: Windows logs registry modifications for security auditing
+
+#### Best Practices
+- **Review Startup Items**: Regularly review startup applications in Task Manager
+- **Disable When Not Needed**: Disable automatic startup if not required
+- **Monitor Registry**: Use security tools to monitor registry startup key changes
+- **Verify Executable**: Ensure the startup entry points to the legitimate V-Launcher executable
+
+### System Tray Integration
+
+#### Minimize to Tray Behavior
+- **Background Operation**: Application continues running when minimized to system tray
+- **Credential Access**: Encrypted credentials remain accessible while in tray
+- **Process Visibility**: Application process remains visible in Task Manager
+- **Resource Usage**: Minimal CPU and memory usage while in system tray
+
+#### Security Implications
+1. **Persistent Access**: Credentials remain decryptable while application is running
+2. **Session Duration**: Application may run for extended periods when using tray functionality
+3. **Lock Screen**: Application continues running when workstation is locked
+4. **User Awareness**: Users may forget the application is running in the background
+
+#### Security Recommendations
+1. **Lock Workstation**: Always lock your workstation when leaving it unattended
+2. **Exit Completely**: Use "Exit" from tray menu to fully close the application when not needed
+3. **Session Timeout**: Consider closing the application at end of work day
+4. **Monitor Processes**: Regularly review running processes for unexpected instances
+
+### Startup Security Risks and Mitigations
+
+#### Potential Risks
+
+**Unauthorized Startup Modification**
+- **Risk**: Malicious software could modify startup registry entry
+- **Mitigation**: Windows Defender and antivirus monitor registry changes
+- **Detection**: Regular review of startup items in Task Manager
+
+**Executable Replacement**
+- **Risk**: Malicious executable could replace legitimate V-Launcher.exe
+- **Mitigation**: Use code signing and verify digital signatures
+- **Detection**: Antivirus file integrity monitoring
+
+**Credential Exposure on Startup**
+- **Risk**: Application starts automatically with access to encrypted credentials
+- **Mitigation**: DPAPI encryption requires user to be logged in
+- **Best Practice**: Use "Start Minimized" to reduce visibility
+
+#### Mitigation Strategies
+
+1. **File System Monitoring**: Enable Windows file system auditing
+2. **Registry Auditing**: Monitor registry startup key for unauthorized changes
+3. **Code Signing**: Verify application digital signature before startup
+4. **Startup Delay**: Consider adding delay to startup to allow security software to initialize
+5. **User Education**: Train users on startup security best practices
+
 ## Security Limitations and Considerations
 
 ### Known Limitations
@@ -134,6 +218,7 @@ The application verifies file permissions on startup and will recreate the confi
 - **Temporary Exposure**: Decrypted passwords exist briefly in memory during launch operations
 - **Memory Dumps**: Passwords could potentially be recovered from memory dumps
 - **Mitigation**: Application uses SecureString and clears sensitive data promptly
+- **System Tray Impact**: Credentials remain accessible in memory while application runs in tray
 
 #### Physical Security
 - **Local Access**: Users with physical access to the machine could potentially extract credentials
@@ -184,6 +269,9 @@ The application verifies file permissions on startup and will recreate the confi
 - Credential usage can be tracked through Windows Event Logs
 - Configuration changes are logged with timestamps
 - Failed authentication attempts are recorded
+- Application startup events are logged in Windows Event Logs
+- Registry modifications for startup entries are auditable
+- System tray operations and background execution are traceable through process monitoring
 
 ## Incident Response
 
@@ -210,6 +298,18 @@ The application verifies file permissions on startup and will recreate the confi
 2. **Recovery**: Restore from automatic backup files
 3. **Prevention**: Regular configuration backups to secure locations
 
+#### Unauthorized Startup Entry
+1. **Detection**: Review Task Manager startup tab or registry key for unexpected modifications
+2. **Investigation**: Check Windows Event Logs for registry modification events
+3. **Recovery**: Disable startup entry and verify application executable integrity
+4. **Prevention**: Use endpoint protection with registry monitoring
+
+#### System Tray Persistence Issues
+1. **Detection**: Application remains running in background unexpectedly
+2. **Investigation**: Check Task Manager for V-Launcher process
+3. **Recovery**: Use tray icon context menu to exit, or terminate process if unresponsive
+4. **Prevention**: Configure "Minimize on Close" setting according to security policy
+
 ## Security Updates and Maintenance
 
 ### Regular Security Tasks
@@ -218,16 +318,22 @@ The application verifies file permissions on startup and will recreate the confi
 - Review stored credentials for accuracy
 - Check Windows Event Logs for unusual activity
 - Verify file system permissions on configuration directory
+- Review Windows startup registry entries for unauthorized modifications
+- Audit running instances of V-Launcher in Task Manager
 
 #### Quarterly  
 - Update AD account passwords and refresh stored credentials
 - Review and update security monitoring rules
 - Validate backup and recovery procedures
+- Review system tray usage patterns and security implications
+- Verify application startup behavior aligns with security policies
 
 #### Annually
 - Conduct security assessment of deployment
 - Review and update security documentation
 - Validate compliance with organizational policies
+- Assess startup and background operation security posture
+- Review and update user training on secure application usage
 
 ### Security Contact Information
 

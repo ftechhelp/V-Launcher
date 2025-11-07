@@ -9,6 +9,7 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationIcon>V-Launcher_Logo.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +21,7 @@
 
   <ItemGroup>
     <Resource Include="V-Launcher_Logo.png" />
+    <Resource Include="V-Launcher_Logo.ico" />
   </ItemGroup>
 
 </Project>

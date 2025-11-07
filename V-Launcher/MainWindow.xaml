@@ -13,6 +13,7 @@
         MinHeight="600"
         MinWidth="800"
         WindowStartupLocation="CenterScreen"
+        Icon="V-Launcher_Logo.ico"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}">
     
     <Window.Resources>

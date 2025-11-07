@@ -26,6 +26,13 @@ V-Launcher is a secure WPF application that enables users to launch applications
 - **MVVM Architecture**: Maintainable code structure with proper separation of concerns
 - **Real-time Feedback**: Status updates and error messages for all operations
 - **Responsive Layout**: Adaptive interface that works on different screen sizes
+- **Red & White Theme**: Professional color scheme matching the application logo
+
+### ⚙️ Application Settings
+- **Start with Windows**: Automatically launch V-Launcher when Windows starts
+- **Start Minimized**: Begin in system tray for unobtrusive startup
+- **Minimize to Tray**: Minimize to system tray instead of taskbar
+- **System Tray Integration**: Quick access from notification area with context menu
 
 ## System Requirements
 
@@ -131,11 +138,26 @@ V-Launcher is a secure WPF application that enables users to launch applications
    - Click on any configured application icon
    - The application will launch automatically with the configured AD credentials
    - Status messages will appear at the bottom of the window
+   - If minimized to tray, double-click the system tray icon to restore the window
 
 2. **Manage Configurations**
    - Use "Manage Accounts" to add, edit, or remove AD accounts
    - Use "Manage Apps" to add, edit, or remove application configurations
    - Changes are saved automatically
+
+3. **Configure Application Settings**
+   - Locate the settings checkboxes in the main window (near navigation buttons)
+   - **Start on Windows Start**: Enable to launch V-Launcher automatically when Windows starts
+   - **Start Minimized**: Enable to start the application minimized to system tray
+   - **Minimize on Close**: Enable to minimize to system tray instead of closing when clicking X
+   - All settings are saved automatically when changed
+
+4. **System Tray Usage**
+   - When minimized to tray, V-Launcher appears in the notification area
+   - **Double-click** the tray icon to restore the main window
+   - **Right-click** the tray icon for quick actions:
+     - Show/Hide main window
+     - Exit application
 
 ### Configuration File Locations
 
@@ -143,9 +165,14 @@ V-Launcher stores its configuration files in the user's AppData folder:
 
 ```
 %APPDATA%\V-Launcher\
-├── config.json          # Main configuration file
+├── config.json          # Main configuration file (includes settings)
 └── logs\                 # Application logs (if logging is enabled)
 ```
+
+The configuration file includes:
+- Encrypted AD account credentials
+- Executable configurations
+- Application settings (startup behavior, minimize options)
 
 ## Security Information
 
@@ -208,6 +235,35 @@ V-Launcher stores its configuration files in the user's AppData folder:
 3. **File Corruption**: Delete `config.json` to reset (will lose all configurations)
 4. **Antivirus**: Check if antivirus is blocking file access
 
+#### Windows Startup Issues
+**Problem**: Application doesn't start with Windows despite setting enabled
+
+**Solutions**:
+1. **Registry Permissions**: Ensure user has permission to modify startup registry keys
+2. **Check Registry**: Verify entry exists in `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run`
+3. **Executable Path**: Ensure the application hasn't been moved after enabling startup
+4. **Task Manager**: Check Startup tab in Task Manager to verify the entry
+5. **UAC Settings**: Verify User Account Control isn't blocking the startup entry
+
+#### System Tray Issues
+**Problem**: Application doesn't appear in system tray or tray icon not working
+
+**Solutions**:
+1. **Notification Area Settings**: Check Windows notification area settings
+2. **Hidden Icons**: Click the up arrow in system tray to show hidden icons
+3. **Windows Explorer**: Restart Windows Explorer process if tray icons are not displaying
+4. **Restore Window**: Use Alt+Tab to find and restore the window if tray icon is unresponsive
+5. **Restart Application**: Close and restart V-Launcher to reinitialize system tray integration
+
+#### Minimize to Tray Not Working
+**Problem**: Clicking X closes the application instead of minimizing to tray
+
+**Solutions**:
+1. **Check Setting**: Verify "Minimize on Close" checkbox is enabled in settings
+2. **Force Close**: Use right-click on tray icon and select "Exit" to fully close the application
+3. **Settings Persistence**: Ensure settings are being saved (check config.json file)
+4. **Restart Required**: Restart the application after changing the minimize setting
+
 ### Error Messages
 
 #### "Failed to encrypt password using DPAPI"
@@ -225,6 +281,14 @@ V-Launcher stores its configuration files in the user's AppData folder:
 #### "Access denied"
 - **Cause**: Insufficient permissions for the AD account
 - **Solution**: Verify account permissions or contact domain administrator
+
+#### "Failed to set Windows startup registry entry"
+- **Cause**: Insufficient permissions to modify registry startup keys
+- **Solution**: Run application as administrator or contact system administrator
+
+#### "System tray icon initialization failed"
+- **Cause**: Windows notification area service issue
+- **Solution**: Restart Windows Explorer or reboot the system
 
 ### Getting Help
 
