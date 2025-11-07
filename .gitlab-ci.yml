@@ -52,15 +52,15 @@ release:
     - powershell -Command "Compress-Archive -Path $PUBLISH_OUTPUT/win-x64/* -DestinationPath $PUBLISH_OUTPUT/${PROJECT_NAME}-${CI_COMMIT_TAG}-win-x64.zip -Force"
     - powershell -Command "Compress-Archive -Path $PUBLISH_OUTPUT/win-x64-framework-dependent/* -DestinationPath $PUBLISH_OUTPUT/${PROJECT_NAME}-${CI_COMMIT_TAG}-win-x64-framework-dependent.zip -Force"
     
-    # Generate release notes
+    # Generate release notes using PowerShell
     - |
-      cat > release_notes.md << EOF
-      # V-Launcher ${CI_COMMIT_TAG}
+      @"
+      # V-Launcher $env:CI_COMMIT_TAG
       
       ## Downloads
       
-      - **Self-Contained Build** (Includes .NET Runtime): ${PROJECT_NAME}-${CI_COMMIT_TAG}-win-x64.zip
-      - **Framework-Dependent Build** (Requires .NET 9.0 Runtime): ${PROJECT_NAME}-${CI_COMMIT_TAG}-win-x64-framework-dependent.zip
+      - **Self-Contained Build** (Includes .NET Runtime): $env:PROJECT_NAME-$env:CI_COMMIT_TAG-win-x64.zip
+      - **Framework-Dependent Build** (Requires .NET 9.0 Runtime): $env:PROJECT_NAME-$env:CI_COMMIT_TAG-win-x64-framework-dependent.zip
       
       ## System Requirements
       
@@ -76,7 +76,7 @@ release:
       ## What's New
       
       See the [README](README.md) for full feature list and documentation.
-      EOF
+      "@ | Out-File -FilePath release_notes.md -Encoding UTF8
   
   artifacts:
     paths:
