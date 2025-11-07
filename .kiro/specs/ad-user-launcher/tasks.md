@@ -197,7 +197,12 @@
   - Add validation and error handling for settings operations
   - _Requirements: MVVM pattern for settings management_
 
-- [ ] 26. Write tests for application settings functionality
+- [x] 26. Write tests for application settings functionality
+
+
+
+
+
   - Add unit tests for ApplicationSettings model and persistence
   - Test Windows startup registry integration
   - Add integration tests for settings UI and behavior
