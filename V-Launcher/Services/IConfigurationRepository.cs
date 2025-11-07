@@ -42,4 +42,16 @@ public interface IConfigurationRepository
     /// </summary>
     /// <param name="configuration">Application configuration to save</param>
     Task SaveConfigurationAsync(ApplicationConfiguration configuration);
+
+    /// <summary>
+    /// Loads application settings from persistent storage
+    /// </summary>
+    /// <returns>Application settings</returns>
+    Task<ApplicationSettings> LoadSettingsAsync();
+
+    /// <summary>
+    /// Saves application settings to persistent storage
+    /// </summary>
+    /// <param name="settings">Application settings to save</param>
+    Task SaveSettingsAsync(ApplicationSettings settings);
 }

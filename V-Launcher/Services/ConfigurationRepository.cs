@@ -161,6 +161,23 @@ public class ConfigurationRepository : IConfigurationRepository
         }
     }
 
+    public async Task<ApplicationSettings> LoadSettingsAsync()
+    {
+        var configuration = await LoadConfigurationAsync();
+        return configuration.Settings;
+    }
+
+    public async Task SaveSettingsAsync(ApplicationSettings settings)
+    {
+        if (settings == null)
+            throw new ArgumentNullException(nameof(settings));
+
+        var configuration = await LoadConfigurationAsync();
+        configuration.Settings = settings;
+        configuration.LastSaved = DateTime.UtcNow;
+        await SaveConfigurationAsync(configuration);
+    }
+
     /// <summary>
     /// Gets the path to the configuration file
     /// </summary>

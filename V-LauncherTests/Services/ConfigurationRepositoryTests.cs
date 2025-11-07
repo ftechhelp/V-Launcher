@@ -247,6 +247,70 @@ public class ConfigurationRepositoryTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task LoadSettingsAsync_WhenFileDoesNotExist_ReturnsDefaultSettings()
+    {
+        // Act
+        var settings = await _repository.LoadSettingsAsync();
+
+        // Assert
+        Assert.NotNull(settings);
+        Assert.True(settings.StartOnWindowsStart);
+        Assert.True(settings.StartMinimized);
+        Assert.True(settings.MinimizeOnClose);
+    }
+
+    [Fact]
+    public async Task SaveSettingsAsync_WithValidSettings_PersistsCorrectly()
+    {
+        // Arrange
+        var settings = new ApplicationSettings
+        {
+            StartOnWindowsStart = false,
+            StartMinimized = true,
+            MinimizeOnClose = false
+        };
+
+        // Act
+        await _repository.SaveSettingsAsync(settings);
+
+        // Assert
+        var loadedSettings = await _repository.LoadSettingsAsync();
+        Assert.False(loadedSettings.StartOnWindowsStart);
+        Assert.True(loadedSettings.StartMinimized);
+        Assert.False(loadedSettings.MinimizeOnClose);
+    }
+
+    [Fact]
+    public async Task SaveSettingsAsync_WithNullSettings_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _repository.SaveSettingsAsync(null!));
+    }
+
+    [Fact]
+    public async Task LoadConfigurationAsync_WithSettings_IncludesSettingsInConfiguration()
+    {
+        // Arrange
+        var settings = new ApplicationSettings
+        {
+            StartOnWindowsStart = false,
+            StartMinimized = false,
+            MinimizeOnClose = true
+        };
+
+        await _repository.SaveSettingsAsync(settings);
+
+        // Act
+        var configuration = await _repository.LoadConfigurationAsync();
+
+        // Assert
+        Assert.NotNull(configuration.Settings);
+        Assert.False(configuration.Settings.StartOnWindowsStart);
+        Assert.False(configuration.Settings.StartMinimized);
+        Assert.True(configuration.Settings.MinimizeOnClose);
+    }
+
     public void Dispose()
     {
         _repository?.Dispose();

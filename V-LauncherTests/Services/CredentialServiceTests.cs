@@ -249,8 +249,20 @@ public class TestConfigurationRepository : IConfigurationRepository
     {
         _configuration.ADAccounts = configuration.ADAccounts;
         _configuration.ExecutableConfigurations = configuration.ExecutableConfigurations;
+        _configuration.Settings = configuration.Settings;
         _configuration.Version = configuration.Version;
         _configuration.LastSaved = configuration.LastSaved;
+        return Task.CompletedTask;
+    }
+
+    public Task<ApplicationSettings> LoadSettingsAsync()
+    {
+        return Task.FromResult(_configuration.Settings);
+    }
+
+    public Task SaveSettingsAsync(ApplicationSettings settings)
+    {
+        _configuration.Settings = settings;
         return Task.CompletedTask;
     }
 }

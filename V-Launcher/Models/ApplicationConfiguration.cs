@@ -16,6 +16,11 @@ public class ApplicationConfiguration
     public List<ExecutableConfiguration> ExecutableConfigurations { get; set; } = new();
 
     /// <summary>
+    /// Application settings for startup behavior and window management
+    /// </summary>
+    public ApplicationSettings Settings { get; set; } = new();
+
+    /// <summary>
     /// Configuration file version for future compatibility
     /// </summary>
     public string Version { get; set; } = "1.0";
