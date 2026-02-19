@@ -3,6 +3,7 @@ using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using V_Launcher.Models;
+using V_Launcher.Properties;
 using V_Launcher.Services;
 
 namespace V_Launcher.ViewModels;
@@ -15,6 +16,7 @@ public partial class LauncherViewModel : ViewModelBase
     private readonly IExecutableService _executableService;
     private readonly ICredentialService _credentialService;
     private readonly IProcessLauncher _processLauncher;
+    private readonly IConfigurationRepository _configurationRepository;
 
     [ObservableProperty]
     private ObservableCollection<ExecutableItem> _executableItems = new();
@@ -34,23 +36,29 @@ public partial class LauncherViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isLaunching;
 
+    [ObservableProperty]
+    private LauncherOrderMode _launcherOrderMode = LauncherOrderMode.Custom;
+
     private bool _isRefreshing;
+    private bool _isLoadingOrderMode;
 
     public LauncherViewModel(
         IExecutableService executableService,
         ICredentialService credentialService,
-        IProcessLauncher processLauncher)
+        IProcessLauncher processLauncher,
+        IConfigurationRepository configurationRepository)
     {
         _executableService = executableService;
         _credentialService = credentialService;
         _processLauncher = processLauncher;
+        _configurationRepository = configurationRepository;
 
         LaunchExecutableCommand = new AsyncRelayCommand<ExecutableItem>(LaunchExecutableAsync, CanLaunchExecutable);
         RefreshExecutablesCommand = new AsyncRelayCommand(RefreshExecutablesAsync, () => !IsLoading);
         LoadExecutablesCommand = new AsyncRelayCommand(LoadExecutablesAsync);
 
         // Load executables on initialization
-        _ = LoadExecutablesAsync();
+        _ = InitializeAsync();
     }
 
     #region Commands
@@ -67,6 +75,8 @@ public partial class LauncherViewModel : ViewModelBase
     /// Event raised when an application is successfully launched
     /// </summary>
     public event EventHandler? ApplicationLaunchedSuccessfully;
+
+    public bool IsCustomOrderMode => LauncherOrderMode == LauncherOrderMode.Custom;
 
     #endregion
 
@@ -205,11 +215,13 @@ public partial class LauncherViewModel : ViewModelBase
                 }
             }
 
+            var orderedItems = ApplyOrdering(executableItems);
+
             // Update collections on UI thread
             await InvokeOnUIThreadAsync(() =>
             {
                 ExecutableItems.Clear();
-                foreach (var item in executableItems)
+                foreach (var item in orderedItems)
                 {
                     ExecutableItems.Add(item);
                 }
@@ -230,6 +242,116 @@ public partial class LauncherViewModel : ViewModelBase
             _isRefreshing = false;
         }
     }
+
+    private async Task InitializeAsync()
+    {
+        await LoadOrderModeAsync();
+        await LoadExecutablesAsync();
+    }
+
+    private async Task LoadOrderModeAsync()
+    {
+        try
+        {
+            _isLoadingOrderMode = true;
+            var settings = await _configurationRepository.LoadSettingsAsync();
+            LauncherOrderMode = settings.LauncherOrderMode;
+        }
+        finally
+        {
+            _isLoadingOrderMode = false;
+        }
+    }
+
+    private List<ExecutableItem> ApplyOrdering(IEnumerable<ExecutableItem> executableItems)
+    {
+        if (LauncherOrderMode == LauncherOrderMode.Alphabetical)
+        {
+            return executableItems
+                .OrderBy(item => item.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+        }
+
+        return executableItems.ToList();
+    }
+
+    public async Task SetLauncherOrderModeAsync(LauncherOrderMode orderMode)
+    {
+        try
+        {
+            if (LauncherOrderMode != orderMode)
+            {
+                LauncherOrderMode = orderMode;
+            }
+
+            var settings = await _configurationRepository.LoadSettingsAsync();
+            settings.LauncherOrderMode = orderMode;
+            await _configurationRepository.SaveSettingsAsync(settings);
+
+            if (orderMode == LauncherOrderMode.Custom)
+            {
+                await LoadExecutablesAsync();
+            }
+            else
+            {
+                var orderedItems = ApplyOrdering(ExecutableItems);
+                await InvokeOnUIThreadAsync(() =>
+                {
+                    ExecutableItems.Clear();
+                    foreach (var item in orderedItems)
+                    {
+                        ExecutableItems.Add(item);
+                    }
+                });
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            SetError(string.Format(global::V_Launcher.Properties.Resources.LauncherOrderModeUpdateFailed, ex.Message));
+        }
+    }
+
+    public async Task MoveExecutableItemAsync(ExecutableItem sourceItem, ExecutableItem? targetItem)
+    {
+        ArgumentNullException.ThrowIfNull(sourceItem);
+
+        if (!IsCustomOrderMode)
+        {
+            return;
+        }
+
+        var sourceIndex = ExecutableItems.IndexOf(sourceItem);
+        if (sourceIndex < 0)
+        {
+            return;
+        }
+
+        var targetIndex = targetItem == null
+            ? ExecutableItems.Count - 1
+            : ExecutableItems.IndexOf(targetItem);
+
+        if (targetIndex < 0 || targetIndex == sourceIndex)
+        {
+            return;
+        }
+
+        try
+        {
+            await InvokeOnUIThreadAsync(() => ExecutableItems.Move(sourceIndex, targetIndex));
+
+            var orderedConfigurationIds = ExecutableItems
+                .Select(item => item.Configuration?.Id)
+                .Where(id => id.HasValue)
+                .Select(id => id.Value)
+                .ToList();
+
+            await _executableService.SaveConfigurationOrderAsync(orderedConfigurationIds);
+        }
+        catch (InvalidOperationException ex)
+        {
+            SetError(string.Format(global::V_Launcher.Properties.Resources.LauncherOrderSaveFailed, ex.Message));
+        }
+        }
 
     #endregion
 
@@ -275,6 +397,11 @@ public partial class LauncherViewModel : ViewModelBase
     partial void OnIsLaunchingChanged(bool value)
     {
         LaunchExecutableCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnLauncherOrderModeChanged(LauncherOrderMode value)
+    {
+        OnPropertyChanged(nameof(IsCustomOrderMode));
     }
 
     #endregion

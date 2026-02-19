@@ -87,6 +87,42 @@ public class ExecutableService : IExecutableService
         }
     }
 
+    public async Task SaveConfigurationOrderAsync(IReadOnlyList<Guid> orderedConfigurationIds)
+    {
+        ArgumentNullException.ThrowIfNull(orderedConfigurationIds);
+
+        var configurations = (await GetConfigurationsAsync()).ToList();
+        if (configurations.Count == 0 || orderedConfigurationIds.Count == 0)
+        {
+            return;
+        }
+
+        var configurationLookup = configurations.ToDictionary(config => config.Id, config => config);
+        var reorderedConfigurations = new List<ExecutableConfiguration>(configurations.Count);
+
+        foreach (var id in orderedConfigurationIds)
+        {
+            if (configurationLookup.TryGetValue(id, out var configuration))
+            {
+                reorderedConfigurations.Add(configuration);
+                configurationLookup.Remove(id);
+            }
+        }
+
+        if (configurationLookup.Count > 0)
+        {
+            foreach (var configuration in configurations)
+            {
+                if (configurationLookup.ContainsKey(configuration.Id))
+                {
+                    reorderedConfigurations.Add(configuration);
+                }
+            }
+        }
+
+        await _configurationRepository.SaveExecutableConfigurationsAsync(reorderedConfigurations);
+    }
+
     public async Task<BitmapImage?> GetIconAsync(ExecutableConfiguration config)
     {
         if (config == null)

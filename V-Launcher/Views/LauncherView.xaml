@@ -5,6 +5,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:V_Launcher.Views"
              xmlns:vm="clr-namespace:V_Launcher.ViewModels"
+             xmlns:models="clr-namespace:V_Launcher.Models"
+             xmlns:resources="clr-namespace:V_Launcher.Resources;assembly=V-Launcher"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="800"
              d:DataContext="{d:DesignInstance Type=vm:LauncherViewModel}">
@@ -130,41 +132,77 @@
         <TextBlock Grid.Row="0" 
                    Text="Application Launcher" 
                    Style="{StaticResource HeaderTextStyle}"/>
-        
 
+        <!-- Order Mode -->
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Margin="0,0,0,10">
+            <TextBlock Text="{x:Static resources:LauncherResources.LauncherOrderModeLabel}"
+                       VerticalAlignment="Center"
+                       Margin="0,0,10,0"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       FontWeight="SemiBold"/>
+            <ComboBox Width="180"
+                      SelectedValuePath="Tag"
+                      SelectedValue="{Binding LauncherOrderMode}"
+                      SelectionChanged="OrderModeSelectionChanged">
+                <ComboBoxItem Tag="{x:Static models:LauncherOrderMode.Custom}"
+                              Content="{x:Static resources:LauncherResources.LauncherOrderModeCustom}"/>
+                <ComboBoxItem Tag="{x:Static models:LauncherOrderMode.Alphabetical}"
+                              Content="{x:Static resources:LauncherResources.LauncherOrderModeAlphabetical}"/>
+            </ComboBox>
+        </StackPanel>
         
         <!-- Main Content Area -->
-        <ScrollViewer Grid.Row="2" 
-                      HorizontalScrollBarVisibility="Disabled"
-                      VerticalScrollBarVisibility="Auto">
-            <Grid>
-                <!-- Loading Indicator -->
-                <Grid Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <StackPanel HorizontalAlignment="Center" 
-                                VerticalAlignment="Center"
-                                Margin="40">
-                        <ProgressBar IsIndeterminate="True" 
-                                     Width="200" 
-                                     Height="20"
-                                     Margin="0,0,0,15"
-                                     Style="{StaticResource RedWhiteProgressBarStyle}"/>
-                        <TextBlock Text="Loading applications..." 
-                                   HorizontalAlignment="Center"
-                                   FontSize="14"
-                                   Foreground="{StaticResource TextSecondaryBrush}"/>
-                    </StackPanel>
-                </Grid>
-                
-                <!-- Executable Icons Grid -->
-                <ItemsControl ItemsSource="{Binding ExecutableItems}"
-                              Visibility="{Binding IsLoading, Converter={StaticResource InverseBoolToVisibilityConverter}}">
-                    <ItemsControl.ItemsPanel>
+        <Grid Grid.Row="2">
+            <!-- Loading Indicator -->
+            <Grid Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+                <StackPanel HorizontalAlignment="Center" 
+                            VerticalAlignment="Center"
+                            Margin="40">
+                    <ProgressBar IsIndeterminate="True" 
+                                 Width="200" 
+                                 Height="20"
+                                 Margin="0,0,0,15"
+                                 Style="{StaticResource RedWhiteProgressBarStyle}"/>
+                    <TextBlock Text="Loading applications..." 
+                               HorizontalAlignment="Center"
+                               FontSize="14"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                </StackPanel>
+            </Grid>
+            
+            <!-- Executable Icons Grid -->
+            <ListBox ItemsSource="{Binding ExecutableItems}"
+                     Visibility="{Binding IsLoading, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                     SelectionMode="Single"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     AllowDrop="{Binding IsCustomOrderMode}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     PreviewMouseLeftButtonDown="ExecutableItems_PreviewMouseLeftButtonDown"
+                     MouseMove="ExecutableItems_MouseMove"
+                     DragOver="ExecutableItems_DragOver"
+                     Drop="ExecutableItems_Drop">
+                    <ListBox.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel Orientation="Horizontal" 
                                        HorizontalAlignment="Center"/>
                         </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="0"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Focusable" Value="False"/>
+                            <Setter Property="IsTabStop" Value="False"/>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Button Command="{Binding DataContext.LaunchExecutableCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                     CommandParameter="{Binding}"
@@ -190,24 +228,23 @@
                                 </StackPanel>
                             </Button>
                         </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                    </ListBox.ItemTemplate>
+                </ListBox>
                 
-                <!-- Empty State -->
-                <StackPanel Style="{StaticResource EmptyStateStyle}"
-                            Visibility="{Binding ExecutableItems.Count, Converter={StaticResource InverseBoolToVisibilityConverter}}">
-                    <TextBlock Text="📱" 
-                               FontSize="48" 
-                               HorizontalAlignment="Center"
-                               Margin="0,0,0,20"/>
-                    <TextBlock Text="No applications configured" 
-                               Style="{StaticResource EmptyStateTextStyle}"/>
-                    <TextBlock Text="Use the 'Manage Apps' section to add executable configurations" 
-                               Style="{StaticResource EmptyStateTextStyle}"
-                               FontSize="14"/>
-                </StackPanel>
-            </Grid>
-        </ScrollViewer>
+            <!-- Empty State -->
+            <StackPanel Style="{StaticResource EmptyStateStyle}"
+                        Visibility="{Binding ExecutableItems.Count, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                <TextBlock Text="📱" 
+                           FontSize="48" 
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,20"/>
+                <TextBlock Text="No applications configured" 
+                           Style="{StaticResource EmptyStateTextStyle}"/>
+                <TextBlock Text="Use the 'Manage Apps' section to add executable configurations" 
+                           Style="{StaticResource EmptyStateTextStyle}"
+                           FontSize="14"/>
+            </StackPanel>
+        </Grid>
         
         <!-- Launch Status -->
         <Border Grid.Row="3" 

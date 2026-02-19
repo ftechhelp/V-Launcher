@@ -13,6 +13,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly ICredentialService _credentialService;
     private readonly IExecutableService _executableService;
     private readonly IProcessLauncher _processLauncher;
+    private readonly IConfigurationRepository _configurationRepository;
     private readonly ILogger<MainViewModel> _logger;
 
     [ObservableProperty]
@@ -46,16 +47,18 @@ public partial class MainViewModel : ViewModelBase
         ICredentialService credentialService,
         IExecutableService executableService,
         IProcessLauncher processLauncher,
+        IConfigurationRepository configurationRepository,
         SettingsViewModel settingsViewModel,
         ILogger<MainViewModel> logger)
     {
         _credentialService = credentialService;
         _executableService = executableService;
         _processLauncher = processLauncher;
+        _configurationRepository = configurationRepository;
         _logger = logger;
 
         // Initialize child ViewModels
-        _launcherViewModel = new LauncherViewModel(executableService, credentialService, processLauncher);
+        _launcherViewModel = new LauncherViewModel(executableService, credentialService, processLauncher, configurationRepository);
         _credentialManagementViewModel = new CredentialManagementViewModel(credentialService, RefreshDataAfterChangesAsync);
         _executableManagementViewModel = new ExecutableManagementViewModel(executableService, credentialService, RefreshDataAfterChangesAsync);
         _settingsViewModel = settingsViewModel ?? throw new ArgumentNullException(nameof(settingsViewModel));

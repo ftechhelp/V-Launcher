@@ -262,6 +262,43 @@ public class ExecutableServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveConfigurationOrderAsync_WithOrderedIds_ShouldPersistOrder()
+    {
+        // Arrange
+        var firstConfig = new ExecutableConfiguration
+        {
+            DisplayName = "First App",
+            ExecutablePath = Path.Combine(Environment.SystemDirectory, "notepad.exe"),
+            ADAccountId = Guid.NewGuid()
+        };
+
+        var secondConfig = new ExecutableConfiguration
+        {
+            DisplayName = "Second App",
+            ExecutablePath = Path.Combine(Environment.SystemDirectory, "notepad.exe"),
+            ADAccountId = Guid.NewGuid()
+        };
+
+        await _executableService.SaveConfigurationAsync(firstConfig);
+        await _executableService.SaveConfigurationAsync(secondConfig);
+
+        // Act
+        await _executableService.SaveConfigurationOrderAsync(new[] { secondConfig.Id, firstConfig.Id });
+
+        // Assert
+        var configurations = (await _executableService.GetConfigurationsAsync()).ToList();
+        Assert.Equal(new[] { secondConfig.Id, firstConfig.Id }, configurations.Select(config => config.Id));
+    }
+
+    [Fact]
+    public async Task SaveConfigurationOrderAsync_WithNullList_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            _executableService.SaveConfigurationOrderAsync(null!));
+    }
+
+    [Fact]
     public async Task SaveConfigurationAsync_WithEmptyDisplayName_ThrowsArgumentException()
     {
         // Arrange

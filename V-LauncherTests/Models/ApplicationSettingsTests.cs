@@ -18,6 +18,7 @@ public class ApplicationSettingsTests
         Assert.False(settings.StartOnWindowsStart);
         Assert.False(settings.StartMinimized);
         Assert.False(settings.MinimizeOnClose);
+        Assert.Equal(LauncherOrderMode.Custom, settings.LauncherOrderMode);
     }
 
     [Fact]
@@ -28,7 +29,8 @@ public class ApplicationSettingsTests
         {
             StartOnWindowsStart = false,
             StartMinimized = true,
-            MinimizeOnClose = false
+            MinimizeOnClose = false,
+            LauncherOrderMode = LauncherOrderMode.Alphabetical
         };
 
         // Act
@@ -39,6 +41,7 @@ public class ApplicationSettingsTests
         Assert.Equal(original.StartOnWindowsStart, clone.StartOnWindowsStart);
         Assert.Equal(original.StartMinimized, clone.StartMinimized);
         Assert.Equal(original.MinimizeOnClose, clone.MinimizeOnClose);
+        Assert.Equal(original.LauncherOrderMode, clone.LauncherOrderMode);
     }
 
     [Fact]
@@ -52,11 +55,13 @@ public class ApplicationSettingsTests
         original.StartOnWindowsStart = true;
         original.StartMinimized = true;
         original.MinimizeOnClose = true;
+        original.LauncherOrderMode = LauncherOrderMode.Alphabetical;
 
         // Assert - clone should still have default values (false)
         Assert.False(clone.StartOnWindowsStart);
         Assert.False(clone.StartMinimized);
         Assert.False(clone.MinimizeOnClose);
+        Assert.Equal(LauncherOrderMode.Custom, clone.LauncherOrderMode);
     }
 
     [Theory]
@@ -71,14 +76,16 @@ public class ApplicationSettingsTests
         {
             StartOnWindowsStart = startOnWindowsStart,
             StartMinimized = startMinimized,
-            MinimizeOnClose = minimizeOnClose
+            MinimizeOnClose = minimizeOnClose,
+            LauncherOrderMode = LauncherOrderMode.Custom
         };
 
         var settings2 = new ApplicationSettings
         {
             StartOnWindowsStart = startOnWindowsStart,
             StartMinimized = startMinimized,
-            MinimizeOnClose = minimizeOnClose
+            MinimizeOnClose = minimizeOnClose,
+            LauncherOrderMode = LauncherOrderMode.Custom
         };
 
         // Act & Assert
@@ -94,14 +101,16 @@ public class ApplicationSettingsTests
         {
             StartOnWindowsStart = true,
             StartMinimized = true,
-            MinimizeOnClose = true
+            MinimizeOnClose = true,
+            LauncherOrderMode = LauncherOrderMode.Custom
         };
 
         var settings2 = new ApplicationSettings
         {
             StartOnWindowsStart = false,
             StartMinimized = true,
-            MinimizeOnClose = true
+            MinimizeOnClose = true,
+            LauncherOrderMode = LauncherOrderMode.Custom
         };
 
         // Act & Assert
@@ -138,14 +147,16 @@ public class ApplicationSettingsTests
         {
             StartOnWindowsStart = true,
             StartMinimized = false,
-            MinimizeOnClose = true
+            MinimizeOnClose = true,
+            LauncherOrderMode = LauncherOrderMode.Custom
         };
 
         var settings2 = new ApplicationSettings
         {
             StartOnWindowsStart = true,
             StartMinimized = false,
-            MinimizeOnClose = true
+            MinimizeOnClose = true,
+            LauncherOrderMode = LauncherOrderMode.Custom
         };
 
         // Act
@@ -164,14 +175,16 @@ public class ApplicationSettingsTests
         {
             StartOnWindowsStart = true,
             StartMinimized = true,
-            MinimizeOnClose = true
+            MinimizeOnClose = true,
+            LauncherOrderMode = LauncherOrderMode.Custom
         };
 
         var settings2 = new ApplicationSettings
         {
             StartOnWindowsStart = false,
             StartMinimized = true,
-            MinimizeOnClose = true
+            MinimizeOnClose = true,
+            LauncherOrderMode = LauncherOrderMode.Custom
         };
 
         // Act
@@ -197,5 +210,8 @@ public class ApplicationSettingsTests
 
         settings.MinimizeOnClose = false;
         Assert.False(settings.MinimizeOnClose);
+
+        settings.LauncherOrderMode = LauncherOrderMode.Alphabetical;
+        Assert.Equal(LauncherOrderMode.Alphabetical, settings.LauncherOrderMode);
     }
 }

@@ -33,6 +33,7 @@ public class SettingsViewModelTests : IDisposable
         Assert.False(_viewModel.Settings.StartOnWindowsStart);
         Assert.False(_viewModel.Settings.StartMinimized);
         Assert.False(_viewModel.Settings.MinimizeOnClose);
+        Assert.Equal(LauncherOrderMode.Custom, _viewModel.Settings.LauncherOrderMode);
         Assert.False(_viewModel.IsLoading);
         Assert.False(_viewModel.IsSaving);
         Assert.Empty(_viewModel.StatusMessage);
@@ -71,7 +72,8 @@ public class SettingsViewModelTests : IDisposable
         {
             StartOnWindowsStart = false,
             StartMinimized = true,
-            MinimizeOnClose = false
+            MinimizeOnClose = false,
+            LauncherOrderMode = LauncherOrderMode.Alphabetical
         };
         _mockRepository.SetSettings(expectedSettings);
 
@@ -82,6 +84,7 @@ public class SettingsViewModelTests : IDisposable
         Assert.Equal(expectedSettings.StartOnWindowsStart, _viewModel.Settings.StartOnWindowsStart);
         Assert.Equal(expectedSettings.StartMinimized, _viewModel.Settings.StartMinimized);
         Assert.Equal(expectedSettings.MinimizeOnClose, _viewModel.Settings.MinimizeOnClose);
+        Assert.Equal(expectedSettings.LauncherOrderMode, _viewModel.Settings.LauncherOrderMode);
         Assert.False(_viewModel.IsLoading);
         Assert.Contains("Settings loaded successfully", _viewModel.StatusMessage);
     }
@@ -99,6 +102,7 @@ public class SettingsViewModelTests : IDisposable
         Assert.False(_viewModel.Settings.StartOnWindowsStart);
         Assert.False(_viewModel.Settings.StartMinimized);
         Assert.False(_viewModel.Settings.MinimizeOnClose);
+        Assert.Equal(LauncherOrderMode.Custom, _viewModel.Settings.LauncherOrderMode);
         Assert.True(_viewModel.HasError);
         Assert.Contains("Failed to load settings", _viewModel.StatusMessage);
     }
@@ -109,6 +113,7 @@ public class SettingsViewModelTests : IDisposable
         // Arrange
         _viewModel.Settings.StartOnWindowsStart = false;
         _viewModel.Settings.StartMinimized = false;
+        _viewModel.Settings.LauncherOrderMode = LauncherOrderMode.Custom;
 
         // Act
         await _viewModel.SaveSettingsCommand.ExecuteAsync(null);
@@ -118,6 +123,7 @@ public class SettingsViewModelTests : IDisposable
         Assert.NotNull(savedSettings);
         Assert.False(savedSettings.StartOnWindowsStart);
         Assert.False(savedSettings.StartMinimized);
+        Assert.Equal(LauncherOrderMode.Custom, savedSettings.LauncherOrderMode);
         Assert.Contains("Settings saved successfully", _viewModel.StatusMessage);
     }
 
@@ -202,6 +208,7 @@ public class SettingsViewModelTests : IDisposable
         _viewModel.Settings.StartOnWindowsStart = true;
         _viewModel.Settings.StartMinimized = true;
         _viewModel.Settings.MinimizeOnClose = true;
+        _viewModel.Settings.LauncherOrderMode = LauncherOrderMode.Alphabetical;
 
         // Act
         await _viewModel.ResetToDefaultsCommand.ExecuteAsync(null);
@@ -210,6 +217,7 @@ public class SettingsViewModelTests : IDisposable
         Assert.False(_viewModel.Settings.StartOnWindowsStart);
         Assert.False(_viewModel.Settings.StartMinimized);
         Assert.False(_viewModel.Settings.MinimizeOnClose);
+        Assert.Equal(LauncherOrderMode.Custom, _viewModel.Settings.LauncherOrderMode);
         Assert.False(_mockRegistryService.IsStartupEnabled);
         Assert.Contains("Settings reset to defaults", _viewModel.StatusMessage);
     }
@@ -219,6 +227,7 @@ public class SettingsViewModelTests : IDisposable
     {
         // Arrange
         _viewModel.Settings.StartOnWindowsStart = false;
+        _viewModel.Settings.LauncherOrderMode = LauncherOrderMode.Custom;
 
         // Act
         var currentSettings = _viewModel.GetCurrentSettings();
@@ -226,6 +235,7 @@ public class SettingsViewModelTests : IDisposable
         // Assert
         Assert.NotSame(_viewModel.Settings, currentSettings);
         Assert.Equal(_viewModel.Settings.StartOnWindowsStart, currentSettings.StartOnWindowsStart);
+        Assert.Equal(_viewModel.Settings.LauncherOrderMode, currentSettings.LauncherOrderMode);
     }
 
     [Fact]
@@ -236,7 +246,8 @@ public class SettingsViewModelTests : IDisposable
         {
             StartOnWindowsStart = false,
             StartMinimized = false,
-            MinimizeOnClose = false
+            MinimizeOnClose = false,
+            LauncherOrderMode = LauncherOrderMode.Alphabetical
         };
 
         // Act
@@ -246,6 +257,7 @@ public class SettingsViewModelTests : IDisposable
         Assert.False(_viewModel.Settings.StartOnWindowsStart);
         Assert.False(_viewModel.Settings.StartMinimized);
         Assert.False(_viewModel.Settings.MinimizeOnClose);
+        Assert.Equal(LauncherOrderMode.Alphabetical, _viewModel.Settings.LauncherOrderMode);
     }
 
     [Fact]
@@ -264,7 +276,8 @@ public class SettingsViewModelTests : IDisposable
         {
             StartOnWindowsStart = false,
             StartMinimized = false,
-            MinimizeOnClose = false
+            MinimizeOnClose = false,
+            LauncherOrderMode = LauncherOrderMode.Alphabetical
         };
         _mockRepository.SetSettings(newSettings);
 
@@ -275,6 +288,7 @@ public class SettingsViewModelTests : IDisposable
         Assert.False(_viewModel.Settings.StartOnWindowsStart);
         Assert.False(_viewModel.Settings.StartMinimized);
         Assert.False(_viewModel.Settings.MinimizeOnClose);
+        Assert.Equal(LauncherOrderMode.Alphabetical, _viewModel.Settings.LauncherOrderMode);
     }
 
     [Fact]

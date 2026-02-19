@@ -29,6 +29,12 @@ public interface IExecutableService
     Task DeleteConfigurationAsync(Guid configId);
 
     /// <summary>
+    /// Saves the order of executable configurations based on the provided IDs.
+    /// </summary>
+    /// <param name="orderedConfigurationIds">Configuration IDs in the desired order</param>
+    Task SaveConfigurationOrderAsync(IReadOnlyList<Guid> orderedConfigurationIds);
+
+    /// <summary>
     /// Gets the icon for an executable configuration (custom or extracted from executable)
     /// </summary>
     /// <param name="config">The executable configuration</param>
