@@ -135,18 +135,23 @@ public partial class ExecutableManagementViewModel : ViewModelBase
             // Track the old custom icon path before updating (for cache clearing)
             string? oldCustomIconPath = SelectedConfiguration?.CustomIconPath;
 
-            var config = SelectedConfiguration ?? new ExecutableConfiguration();
-            config.DisplayName = DisplayName.Trim();
-            config.ExecutablePath = ExecutablePath.Trim();
-            config.CustomIconPath = string.IsNullOrWhiteSpace(CustomIconPath) ? null : CustomIconPath.Trim();
-            config.ADAccountId = SelectedAccount!.Id;
-            config.Arguments = string.IsNullOrWhiteSpace(Arguments) ? null : Arguments.Trim();
-            config.WorkingDirectory = string.IsNullOrWhiteSpace(WorkingDirectory) ? null : WorkingDirectory.Trim();
+            var config = new ExecutableConfiguration
+            {
+                Id = SelectedConfiguration?.Id ?? Guid.NewGuid(),
+                DisplayName = DisplayName.Trim(),
+                ExecutablePath = ExecutablePath.Trim(),
+                CustomIconPath = string.IsNullOrWhiteSpace(CustomIconPath) ? null : CustomIconPath.Trim(),
+                ADAccountId = SelectedAccount!.Id,
+                Arguments = string.IsNullOrWhiteSpace(Arguments) ? null : Arguments.Trim(),
+                WorkingDirectory = string.IsNullOrWhiteSpace(WorkingDirectory) ? null : WorkingDirectory.Trim()
+            };
 
             // Pass the old custom icon path so the service can clear it from cache
             var savedConfig = await _executableService.SaveConfigurationAsync(config, oldCustomIconPath);
 
-            // Update or add to collection on UI thread
+            // Update or add to collection on UI thread.
+            // Remove + Insert instead of replace because ExecutableConfiguration.Equals
+            // compares by Id — WPF skips re-rendering when old and new items are equal.
             var isNewConfig = SelectedConfiguration == null;
             await InvokeOnUIThreadAsync(() =>
             {
@@ -155,7 +160,8 @@ public partial class ExecutableManagementViewModel : ViewModelBase
                     var index = Configurations.IndexOf(SelectedConfiguration);
                     if (index >= 0)
                     {
-                        Configurations[index] = savedConfig;
+                        Configurations.RemoveAt(index);
+                        Configurations.Insert(index, savedConfig);
                     }
                 }
                 else
@@ -432,11 +438,12 @@ public partial class ExecutableManagementViewModel : ViewModelBase
     {
         var existingConfig = Configurations.FirstOrDefault(c => 
             c.DisplayName.Equals(DisplayName.Trim(), StringComparison.OrdinalIgnoreCase) 
+            && c.ADAccountId == SelectedAccount!.Id
             && (SelectedConfiguration == null || c.Id != SelectedConfiguration.Id));
         
         if (existingConfig != null)
         {
-            SetValidationError("A configuration with this display name already exists.");
+            SetValidationError("A configuration with this display name and AD account already exists.");
             return false;
         }
 
