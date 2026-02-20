@@ -128,6 +128,7 @@ namespace V_Launcher
                     services.AddSingleton<IConfigurationRepository, ConfigurationRepository>();
                     services.AddSingleton<ICredentialService, CredentialService>();
                     services.AddSingleton<IExecutableService, ExecutableService>();
+                    services.AddSingleton<IClipboardService, ClipboardService>();
                     services.AddSingleton<IProcessLauncher, ProcessLauncher>();
                     services.AddSingleton<IStartupRegistryService, StartupRegistryService>();
 

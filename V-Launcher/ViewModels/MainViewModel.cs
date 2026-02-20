@@ -14,6 +14,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly IExecutableService _executableService;
     private readonly IProcessLauncher _processLauncher;
     private readonly IConfigurationRepository _configurationRepository;
+    private readonly IClipboardService _clipboardService;
     private readonly ILogger<MainViewModel> _logger;
 
     [ObservableProperty]
@@ -24,6 +25,9 @@ public partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     private ExecutableManagementViewModel _executableManagementViewModel;
+
+    [ObservableProperty]
+    private AdHocLauncherViewModel _adHocLauncherViewModel;
 
     [ObservableProperty]
     private SettingsViewModel _settingsViewModel;
@@ -48,6 +52,7 @@ public partial class MainViewModel : ViewModelBase
         IExecutableService executableService,
         IProcessLauncher processLauncher,
         IConfigurationRepository configurationRepository,
+        IClipboardService clipboardService,
         SettingsViewModel settingsViewModel,
         ILogger<MainViewModel> logger)
     {
@@ -55,12 +60,14 @@ public partial class MainViewModel : ViewModelBase
         _executableService = executableService;
         _processLauncher = processLauncher;
         _configurationRepository = configurationRepository;
+        _clipboardService = clipboardService;
         _logger = logger;
 
         // Initialize child ViewModels
         _launcherViewModel = new LauncherViewModel(executableService, credentialService, processLauncher, configurationRepository);
         _credentialManagementViewModel = new CredentialManagementViewModel(credentialService, RefreshDataAfterChangesAsync);
         _executableManagementViewModel = new ExecutableManagementViewModel(executableService, credentialService, RefreshDataAfterChangesAsync);
+        _adHocLauncherViewModel = new AdHocLauncherViewModel(credentialService, executableService, processLauncher, clipboardService);
         _settingsViewModel = settingsViewModel ?? throw new ArgumentNullException(nameof(settingsViewModel));
 
         // Set initial view to launcher
@@ -70,6 +77,7 @@ public partial class MainViewModel : ViewModelBase
         ShowLauncherViewCommand = new RelayCommand(ShowLauncherView, CanNavigate);
         ShowCredentialManagementViewCommand = new RelayCommand(ShowCredentialManagementView, CanNavigate);
         ShowExecutableManagementViewCommand = new RelayCommand(ShowExecutableManagementView, CanNavigate);
+        ShowAdHocLauncherViewCommand = new RelayCommand(ShowAdHocLauncherView, CanNavigate);
 
         InitializeApplicationCommand = new AsyncRelayCommand(InitializeApplicationAsync);
 
@@ -88,6 +96,7 @@ public partial class MainViewModel : ViewModelBase
     public IRelayCommand ShowLauncherViewCommand { get; }
     public IRelayCommand ShowCredentialManagementViewCommand { get; }
     public IRelayCommand ShowExecutableManagementViewCommand { get; }
+    public IRelayCommand ShowAdHocLauncherViewCommand { get; }
 
     public IAsyncRelayCommand InitializeApplicationCommand { get; }
 
@@ -122,6 +131,13 @@ public partial class MainViewModel : ViewModelBase
         ClearStatus();
         // Automatically refresh executable management data when switching to this view
         _ = RefreshExecutableManagementDataAsync();
+    }
+
+    private void ShowAdHocLauncherView()
+    {
+        CurrentViewModel = AdHocLauncherViewModel;
+        ClearStatus();
+        _ = AdHocLauncherViewModel.LoadAccountsCommand.ExecuteAsync(null);
     }
 
     private async Task RefreshExecutableManagementDataAsync()
@@ -163,6 +179,10 @@ public partial class MainViewModel : ViewModelBase
             initializationTasks.Add(SafeExecuteAsync(
                 () => LauncherViewModel.LoadExecutablesCommand.ExecuteAsync(null),
                 "launcher initialization"));
+
+            initializationTasks.Add(SafeExecuteAsync(
+                () => AdHocLauncherViewModel.LoadAccountsCommand.ExecuteAsync(null),
+                "ad hoc tools initialization"));
 
             // Wait for all initialization tasks to complete
             await Task.WhenAll(initializationTasks);
@@ -232,6 +252,15 @@ public partial class MainViewModel : ViewModelBase
             }
         };
 
+        AdHocLauncherViewModel.PropertyChanged += (sender, e) =>
+        {
+            if (e.PropertyName == nameof(AdHocLauncherViewModel.StatusMessage) && CurrentViewModel == AdHocLauncherViewModel)
+            {
+                StatusMessage = AdHocLauncherViewModel.StatusMessage;
+                HasError = AdHocLauncherViewModel.HasError;
+            }
+        };
+
         // Subscribe to settings ViewModel events for status updates
         SettingsViewModel.PropertyChanged += (sender, e) =>
         {
@@ -290,6 +319,11 @@ public partial class MainViewModel : ViewModelBase
             StatusMessage = ExecutableManagementViewModel.ValidationMessage;
             HasError = ExecutableManagementViewModel.HasValidationError;
         }
+        else if (value == AdHocLauncherViewModel && !string.IsNullOrEmpty(AdHocLauncherViewModel.StatusMessage))
+        {
+            StatusMessage = AdHocLauncherViewModel.StatusMessage;
+            HasError = AdHocLauncherViewModel.HasError;
+        }
     }
 
     partial void OnIsInitializingChanged(bool value)
@@ -298,6 +332,7 @@ public partial class MainViewModel : ViewModelBase
         ShowLauncherViewCommand.NotifyCanExecuteChanged();
         ShowCredentialManagementViewCommand.NotifyCanExecuteChanged();
         ShowExecutableManagementViewCommand.NotifyCanExecuteChanged();
+        ShowAdHocLauncherViewCommand.NotifyCanExecuteChanged();
 
     }
 
@@ -414,6 +449,8 @@ public partial class MainViewModel : ViewModelBase
             
             // Also refresh executable management data to ensure account list is up to date
             await ExecutableManagementViewModel.RefreshAvailableAccountsAsync();
+
+            await AdHocLauncherViewModel.LoadAccountsCommand.ExecuteAsync(null);
         }
         catch (Exception ex)
         {
@@ -512,6 +549,7 @@ public partial class MainViewModel : ViewModelBase
             try { LauncherViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing LauncherViewModel"); }
             try { CredentialManagementViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing CredentialManagementViewModel"); }
             try { ExecutableManagementViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing ExecutableManagementViewModel"); }
+            try { AdHocLauncherViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing AdHocLauncherViewModel"); }
             try { SettingsViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing SettingsViewModel"); }
 
             _logger.LogDebug("MainViewModel disposal completed");

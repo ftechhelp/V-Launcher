@@ -27,4 +27,73 @@
   <data name="LauncherOrderSaveFailed" xml:space="preserve">
     <value>Failed to save the custom order: {0}</value>
   </data>
+  <data name="AdHocNavigationLabel" xml:space="preserve">
+    <value>Ad Hoc Tools</value>
+  </data>
+  <data name="AdHocHeader" xml:space="preserve">
+    <value>Ad Hoc Actions</value>
+  </data>
+  <data name="AdHocCopyPasswordHeader" xml:space="preserve">
+    <value>Copy Account Password</value>
+  </data>
+  <data name="AdHocRunHeader" xml:space="preserve">
+    <value>Run Ad Hoc Application</value>
+  </data>
+  <data name="AdHocAccountLabel" xml:space="preserve">
+    <value>Account:</value>
+  </data>
+  <data name="AdHocExecutableLabel" xml:space="preserve">
+    <value>Executable:</value>
+  </data>
+  <data name="AdHocArgumentsLabel" xml:space="preserve">
+    <value>Arguments:</value>
+  </data>
+  <data name="AdHocWorkingDirectoryLabel" xml:space="preserve">
+    <value>Working Directory:</value>
+  </data>
+  <data name="AdHocCopyPasswordButton" xml:space="preserve">
+    <value>Copy Password</value>
+  </data>
+  <data name="AdHocBrowseButton" xml:space="preserve">
+    <value>Browse</value>
+  </data>
+  <data name="AdHocRunButton" xml:space="preserve">
+    <value>Run</value>
+  </data>
+  <data name="AdHocPasswordCopiedMessage" xml:space="preserve">
+    <value>Password copied to clipboard.</value>
+  </data>
+  <data name="AdHocSelectAccountMessage" xml:space="preserve">
+    <value>Please select an account.</value>
+  </data>
+  <data name="AdHocSelectExecutableMessage" xml:space="preserve">
+    <value>Please select an executable.</value>
+  </data>
+  <data name="AdHocExecutableInvalidMessage" xml:space="preserve">
+    <value>The specified executable does not exist or is not accessible.</value>
+  </data>
+  <data name="AdHocWorkingDirectoryInvalidMessage" xml:space="preserve">
+    <value>The specified working directory does not exist.</value>
+  </data>
+  <data name="AdHocLaunchSuccessMessage" xml:space="preserve">
+    <value>Application launched successfully.</value>
+  </data>
+  <data name="AdHocAccountLoadFailedMessage" xml:space="preserve">
+    <value>Failed to load accounts: {0}</value>
+  </data>
+  <data name="AdHocLaunchFailedMessage" xml:space="preserve">
+    <value>Failed to launch application: {0}</value>
+  </data>
+  <data name="AdHocCopyPasswordFailedMessage" xml:space="preserve">
+    <value>Failed to copy password: {0}</value>
+  </data>
+  <data name="AdHocBrowseExecutableTitle" xml:space="preserve">
+    <value>Select Executable</value>
+  </data>
+  <data name="AdHocBrowseExecutableFilter" xml:space="preserve">
+    <value>Executable Files (*.exe)|*.exe|All Files (*.*)|*.*</value>
+  </data>
+  <data name="AdHocBrowseWorkingDirectoryTitle" xml:space="preserve">
+    <value>Select Working Directory</value>
+  </data>
 </root>

@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:V_Launcher"
         xmlns:views="clr-namespace:V_Launcher.Views"
         xmlns:vm="clr-namespace:V_Launcher.ViewModels"
+        xmlns:resources="clr-namespace:V_Launcher.Resources"
         mc:Ignorable="d"
         Title="{Binding ApplicationTitle}" 
         Height="700" 
@@ -31,6 +32,10 @@
         
         <DataTemplate DataType="{x:Type vm:ExecutableManagementViewModel}">
             <views:ExecutableManagementView/>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:AdHocLauncherViewModel}">
+            <views:AdHocLauncherView/>
         </DataTemplate>
         
         <!-- Styles -->
@@ -154,6 +159,9 @@
                             Style="{StaticResource NavigationButtonStyle}"/>
                     <Button Content="Manage Apps" 
                             Command="{Binding ShowExecutableManagementViewCommand}"
+                            Style="{StaticResource NavigationButtonStyle}"/>
+                    <Button Content="{x:Static resources:AdHocResources.AdHocNavigationLabel}"
+                            Command="{Binding ShowAdHocLauncherViewCommand}"
                             Style="{StaticResource NavigationButtonStyle}"/>
                 </StackPanel>
                 
