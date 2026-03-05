@@ -8,6 +8,7 @@ public class ConfigurationRepositoryTests : IDisposable
 {
     private readonly string _testDirectory;
     private readonly string _testConfigPath;
+    private readonly string _testBackupPath;
     private readonly ConfigurationRepository _repository;
 
     public ConfigurationRepositoryTests()
@@ -15,6 +16,7 @@ public class ConfigurationRepositoryTests : IDisposable
         _testDirectory = Path.Combine(Path.GetTempPath(), "V-LauncherTests", Guid.NewGuid().ToString());
         Directory.CreateDirectory(_testDirectory);
         _testConfigPath = Path.Combine(_testDirectory, "test-config.json");
+        _testBackupPath = _testConfigPath + ".bak";
         _repository = new ConfigurationRepository(_testConfigPath);
     }
 
@@ -58,6 +60,33 @@ public class ConfigurationRepositoryTests : IDisposable
         var fileContent = await File.ReadAllTextAsync(_testConfigPath);
         Assert.Contains("testuser", fileContent);
         Assert.Contains("testdomain", fileContent);
+    }
+
+    [Fact]
+    public async Task SaveConfigurationAsync_WithValidConfiguration_CreatesBackupFile()
+    {
+        // Arrange
+        var configuration = new ApplicationConfiguration
+        {
+            ADAccounts = new List<ADAccount>
+            {
+                new ADAccount
+                {
+                    Id = Guid.NewGuid(),
+                    DisplayName = "Backup Test Account",
+                    Username = "backupuser",
+                    Domain = "backupdomain"
+                }
+            }
+        };
+
+        // Act
+        await _repository.SaveConfigurationAsync(configuration);
+
+        // Assert
+        Assert.True(File.Exists(_testBackupPath));
+        var backupContent = await File.ReadAllTextAsync(_testBackupPath);
+        Assert.Contains("backupuser", backupContent);
     }
 
     [Fact]
@@ -269,6 +298,68 @@ public class ConfigurationRepositoryTests : IDisposable
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _repository.LoadConfigurationAsync());
         Assert.Contains("Failed to deserialize configuration file", exception.Message);
+    }
+
+    [Fact]
+    public async Task LoadConfigurationAsync_WhenPrimaryFileDeleted_RecoversFromBackup()
+    {
+        // Arrange
+        var configuration = new ApplicationConfiguration
+        {
+            ADAccounts =
+            [
+                new ADAccount
+                {
+                    Id = Guid.NewGuid(),
+                    DisplayName = "Recovery Account",
+                    Username = "recoveruser",
+                    Domain = "recoverdomain"
+                }
+            ]
+        };
+
+        await _repository.SaveConfigurationAsync(configuration);
+        File.Delete(_testConfigPath);
+
+        // Act
+        var recoveredConfiguration = await _repository.LoadConfigurationAsync();
+
+        // Assert
+        Assert.Single(recoveredConfiguration.ADAccounts);
+        Assert.Equal("recoveruser", recoveredConfiguration.ADAccounts[0].Username);
+        Assert.True(File.Exists(_testConfigPath));
+    }
+
+    [Fact]
+    public async Task LoadConfigurationAsync_WhenPrimaryFileCorrupted_RecoversFromBackup()
+    {
+        // Arrange
+        var configuration = new ApplicationConfiguration
+        {
+            ADAccounts =
+            [
+                new ADAccount
+                {
+                    Id = Guid.NewGuid(),
+                    DisplayName = "Corruption Recovery Account",
+                    Username = "restoreuser",
+                    Domain = "restoredomain"
+                }
+            ]
+        };
+
+        await _repository.SaveConfigurationAsync(configuration);
+        await File.WriteAllTextAsync(_testConfigPath, "invalid json content");
+
+        // Act
+        var recoveredConfiguration = await _repository.LoadConfigurationAsync();
+
+        // Assert
+        Assert.Single(recoveredConfiguration.ADAccounts);
+        Assert.Equal("restoreuser", recoveredConfiguration.ADAccounts[0].Username);
+
+        var primaryContent = await File.ReadAllTextAsync(_testConfigPath);
+        Assert.Contains("restoreuser", primaryContent);
     }
 
     [Fact]

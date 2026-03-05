@@ -10,6 +10,7 @@ namespace V_Launcher.Services;
 public class ConfigurationRepository : IConfigurationRepository
 {
     private readonly string _configurationFilePath;
+    private readonly IReadOnlyList<string> _backupFilePaths;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly SemaphoreSlim _fileLock = new(1, 1);
 
@@ -19,12 +20,20 @@ public class ConfigurationRepository : IConfigurationRepository
     public ConfigurationRepository()
     {
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var localAppDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var appFolder = Path.Combine(appDataPath, "V-Launcher");
+        var localAppFolder = Path.Combine(localAppDataPath, "V-Launcher");
         
         // Ensure the application folder exists
         Directory.CreateDirectory(appFolder);
+        Directory.CreateDirectory(localAppFolder);
         
         _configurationFilePath = Path.Combine(appFolder, "configuration.json");
+        _backupFilePaths = new[]
+        {
+            Path.Combine(appFolder, "configuration.backup.json"),
+            Path.Combine(localAppFolder, "configuration.backup.json")
+        };
         
         _jsonOptions = new JsonSerializerOptions
         {
@@ -40,6 +49,7 @@ public class ConfigurationRepository : IConfigurationRepository
     public ConfigurationRepository(string configurationFilePath)
     {
         _configurationFilePath = configurationFilePath;
+        _backupFilePaths = new[] { _configurationFilePath + ".bak" };
         
         // Ensure the directory exists
         var directory = Path.GetDirectoryName(_configurationFilePath);
@@ -104,22 +114,31 @@ public class ConfigurationRepository : IConfigurationRepository
         {
             if (!File.Exists(_configurationFilePath))
             {
-                return new ApplicationConfiguration();
+                return await RecoverConfigurationFromBackupsAsync() ?? new ApplicationConfiguration();
             }
 
             var jsonContent = await File.ReadAllTextAsync(_configurationFilePath);
             
             if (string.IsNullOrWhiteSpace(jsonContent))
             {
-                return new ApplicationConfiguration();
+                return await RecoverConfigurationFromBackupsAsync() ?? new ApplicationConfiguration();
             }
 
-            var configuration = JsonSerializer.Deserialize<ApplicationConfiguration>(jsonContent, _jsonOptions);
-            return configuration ?? new ApplicationConfiguration();
-        }
-        catch (JsonException ex)
-        {
-            throw new InvalidOperationException($"Failed to deserialize configuration file: {ex.Message}", ex);
+            try
+            {
+                var configuration = JsonSerializer.Deserialize<ApplicationConfiguration>(jsonContent, _jsonOptions);
+                return configuration ?? new ApplicationConfiguration();
+            }
+            catch (JsonException ex)
+            {
+                var recoveredConfiguration = await RecoverConfigurationFromBackupsAsync();
+                if (recoveredConfiguration is not null)
+                {
+                    return recoveredConfiguration;
+                }
+
+                throw new InvalidOperationException($"Failed to deserialize configuration file: {ex.Message}", ex);
+            }
         }
         catch (IOException ex)
         {
@@ -142,19 +161,12 @@ public class ConfigurationRepository : IConfigurationRepository
             configuration.LastSaved = DateTime.UtcNow;
             
             var jsonContent = JsonSerializer.Serialize(configuration, _jsonOptions);
-            
-            // Write to a temporary file first, then move to prevent corruption
-            var tempFilePath = _configurationFilePath + ".tmp";
-            await File.WriteAllTextAsync(tempFilePath, jsonContent);
-            
-            // Atomic move operation
-            if (File.Exists(_configurationFilePath))
+
+            await WriteConfigurationAtomicallyAsync(_configurationFilePath, jsonContent);
+
+            foreach (var backupFilePath in _backupFilePaths)
             {
-                File.Replace(tempFilePath, _configurationFilePath, null);
-            }
-            else
-            {
-                File.Move(tempFilePath, _configurationFilePath);
+                await WriteConfigurationAtomicallyAsync(backupFilePath, jsonContent);
             }
         }
         catch (JsonException ex)
@@ -196,6 +208,61 @@ public class ConfigurationRepository : IConfigurationRepository
     /// Gets the path to the configuration file
     /// </summary>
     public string ConfigurationFilePath => _configurationFilePath;
+
+    private async Task<ApplicationConfiguration?> RecoverConfigurationFromBackupsAsync()
+    {
+        foreach (var backupFilePath in _backupFilePaths)
+        {
+            if (!File.Exists(backupFilePath))
+            {
+                continue;
+            }
+
+            try
+            {
+                var backupContent = await File.ReadAllTextAsync(backupFilePath);
+                if (string.IsNullOrWhiteSpace(backupContent))
+                {
+                    continue;
+                }
+
+                var recoveredConfiguration = JsonSerializer.Deserialize<ApplicationConfiguration>(backupContent, _jsonOptions);
+                if (recoveredConfiguration is null)
+                {
+                    continue;
+                }
+
+                await WriteConfigurationAtomicallyAsync(_configurationFilePath, backupContent);
+
+                return recoveredConfiguration;
+            }
+            catch (JsonException)
+            {
+                continue;
+            }
+            catch (IOException)
+            {
+                continue;
+            }
+        }
+
+        return null;
+    }
+
+    private static async Task WriteConfigurationAtomicallyAsync(string targetPath, string content)
+    {
+        var tempFilePath = targetPath + ".tmp";
+        await File.WriteAllTextAsync(tempFilePath, content);
+
+        if (File.Exists(targetPath))
+        {
+            File.Replace(tempFilePath, targetPath, null);
+        }
+        else
+        {
+            File.Move(tempFilePath, targetPath);
+        }
+    }
 
     /// <summary>
     /// Disposes the repository and releases resources
