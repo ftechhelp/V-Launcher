@@ -1,6 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using System.Windows;
+using V_Launcher.Resources;
 using V_Launcher.Services;
 
 namespace V_Launcher.ViewModels;
@@ -15,6 +17,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly IProcessLauncher _processLauncher;
     private readonly IConfigurationRepository _configurationRepository;
     private readonly IClipboardService _clipboardService;
+    private readonly IApplicationUpdateService _applicationUpdateService;
     private readonly ILogger<MainViewModel> _logger;
 
     [ObservableProperty]
@@ -56,6 +59,7 @@ public partial class MainViewModel : ViewModelBase
         IProcessLauncher processLauncher,
         IConfigurationRepository configurationRepository,
         IClipboardService clipboardService,
+        IApplicationUpdateService applicationUpdateService,
         INetworkDriveService networkDriveService,
         SettingsViewModel settingsViewModel,
         ILogger<MainViewModel> logger)
@@ -65,6 +69,7 @@ public partial class MainViewModel : ViewModelBase
         _processLauncher = processLauncher;
         _configurationRepository = configurationRepository;
         _clipboardService = clipboardService;
+        _applicationUpdateService = applicationUpdateService ?? throw new ArgumentNullException(nameof(applicationUpdateService));
         _logger = logger;
 
         // Initialize child ViewModels
@@ -84,6 +89,7 @@ public partial class MainViewModel : ViewModelBase
         ShowExecutableManagementViewCommand = new RelayCommand(ShowExecutableManagementView, CanNavigate);
         ShowAdHocLauncherViewCommand = new RelayCommand(ShowAdHocLauncherView, CanNavigate);
         ShowNetworkDriveManagementViewCommand = new RelayCommand(ShowNetworkDriveManagementView, CanNavigate);
+        CheckForUpdatesCommand = new AsyncRelayCommand(CheckForUpdatesAsync, CanNavigate);
 
         InitializeApplicationCommand = new AsyncRelayCommand(InitializeApplicationAsync);
 
@@ -104,6 +110,7 @@ public partial class MainViewModel : ViewModelBase
     public IRelayCommand ShowExecutableManagementViewCommand { get; }
     public IRelayCommand ShowAdHocLauncherViewCommand { get; }
     public IRelayCommand ShowNetworkDriveManagementViewCommand { get; }
+    public IAsyncRelayCommand CheckForUpdatesCommand { get; }
 
     public IAsyncRelayCommand InitializeApplicationCommand { get; }
 
@@ -366,6 +373,7 @@ public partial class MainViewModel : ViewModelBase
         ShowExecutableManagementViewCommand.NotifyCanExecuteChanged();
         ShowAdHocLauncherViewCommand.NotifyCanExecuteChanged();
         ShowNetworkDriveManagementViewCommand.NotifyCanExecuteChanged();
+        CheckForUpdatesCommand.NotifyCanExecuteChanged();
 
     }
 
@@ -385,9 +393,65 @@ public partial class MainViewModel : ViewModelBase
     public async Task HandleApplicationStartupAsync()
     {
         await InitializeApplicationAsync();
+
+        await CheckForUpdatesAsync();
         
         // Handle startup behavior after initialization
         HandleStartupBehavior();
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        try
+        {
+            SetStatus(UpdateResources.UpdateCheckInProgress);
+
+            var updateResult = await _applicationUpdateService.CheckForUpdatesAsync();
+            if (!updateResult.IsUpdateAvailable)
+            {
+                SetStatus(UpdateResources.UpdateNoUpdateMessage);
+                return;
+            }
+
+            if (updateResult.LatestVersion is null)
+            {
+                SetError(UpdateResources.UpdateCheckFailedMessage);
+                return;
+            }
+
+            var promptMessage = string.Format(UpdateResources.UpdateAvailablePromptBody, updateResult.LatestVersion);
+            var result = System.Windows.MessageBox.Show(
+                promptMessage,
+                UpdateResources.UpdateAvailablePromptTitle,
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information,
+                MessageBoxResult.No);
+
+            if (result != MessageBoxResult.Yes)
+            {
+                SetStatus(UpdateResources.UpdateNoUpdateMessage);
+                return;
+            }
+
+            var installerStarted = await _applicationUpdateService.InstallUpdateAsync(updateResult);
+            if (!installerStarted)
+            {
+                SetError(UpdateResources.UpdateInstallFailedMessage);
+                return;
+            }
+
+            SetStatus(UpdateResources.UpdateInstallStartedMessage);
+            System.Windows.Application.Current.Shutdown();
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Update check was canceled.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during update check.");
+            SetError(UpdateResources.UpdateCheckFailedMessage);
+        }
     }
 
     /// <summary>

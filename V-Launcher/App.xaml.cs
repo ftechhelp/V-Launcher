@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Threading;
+using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -132,6 +133,11 @@ namespace V_Launcher
                     services.AddSingleton<IClipboardService, ClipboardService>();
                     services.AddSingleton<IProcessLauncher, ProcessLauncher>();
                     services.AddSingleton<IStartupRegistryService, StartupRegistryService>();
+                    services.AddSingleton<IApplicationUpdateService>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<ApplicationUpdateService>>();
+                        return new ApplicationUpdateService(new HttpClient(), logger);
+                    });
 
                     // Register ViewModels with logging support
                     services.AddTransient<SettingsViewModel>();

@@ -196,6 +196,13 @@
                     <CheckBox Content="Minimize on Close" 
                               IsChecked="{Binding SettingsViewModel.Settings.MinimizeOnClose, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                               Style="{StaticResource SettingsCheckBoxStyle}"/>
+
+                    <Button Content="Check Updates"
+                            Command="{Binding CheckForUpdatesCommand}"
+                            Style="{StaticResource NavigationButtonStyle}"
+                            Margin="10,0,0,0"
+                            Padding="10,6"
+                            MinWidth="110"/>
                 </StackPanel>
             </Grid>
         </Border>

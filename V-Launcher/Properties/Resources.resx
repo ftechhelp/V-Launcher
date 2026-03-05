@@ -96,4 +96,28 @@
   <data name="AdHocBrowseWorkingDirectoryTitle" xml:space="preserve">
     <value>Select Working Directory</value>
   </data>
+  <data name="CheckUpdatesButtonLabel" xml:space="preserve">
+    <value>Check Updates</value>
+  </data>
+  <data name="UpdateCheckInProgress" xml:space="preserve">
+    <value>Checking for updates...</value>
+  </data>
+  <data name="UpdateNoUpdateMessage" xml:space="preserve">
+    <value>You are running the latest version.</value>
+  </data>
+  <data name="UpdateCheckFailedMessage" xml:space="preserve">
+    <value>Unable to check for updates right now.</value>
+  </data>
+  <data name="UpdateAvailablePromptTitle" xml:space="preserve">
+    <value>Update Available</value>
+  </data>
+  <data name="UpdateAvailablePromptBody" xml:space="preserve">
+    <value>A new version ({0}) is available. Install now?</value>
+  </data>
+  <data name="UpdateInstallStartedMessage" xml:space="preserve">
+    <value>Update installer started. The application will close.</value>
+  </data>
+  <data name="UpdateInstallFailedMessage" xml:space="preserve">
+    <value>Failed to start update installer.</value>
+  </data>
 </root>

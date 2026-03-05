@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using V_Launcher.Services;
 using V_Launcher.ViewModels;
+using V_LauncherTests.Services;
 
 namespace V_LauncherTests;
 
@@ -38,6 +39,9 @@ public class ErrorHandlingTests : IDisposable
                 services.AddSingleton<IExecutableService, ExecutableService>();
                 services.AddSingleton<IProcessLauncher, ProcessLauncher>();
                 services.AddSingleton<IStartupRegistryService, StartupRegistryService>();
+                services.AddSingleton<IClipboardService, ClipboardService>();
+                services.AddSingleton<INetworkDriveService, NetworkDriveService>();
+                services.AddSingleton<IApplicationUpdateService, FakeApplicationUpdateService>();
 
                 // Register ViewModels
                 services.AddTransient<SettingsViewModel>();
