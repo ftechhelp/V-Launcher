@@ -128,6 +128,7 @@ namespace V_Launcher
                     services.AddSingleton<IConfigurationRepository, ConfigurationRepository>();
                     services.AddSingleton<ICredentialService, CredentialService>();
                     services.AddSingleton<IExecutableService, ExecutableService>();
+                    services.AddSingleton<INetworkDriveService, NetworkDriveService>();
                     services.AddSingleton<IClipboardService, ClipboardService>();
                     services.AddSingleton<IProcessLauncher, ProcessLauncher>();
                     services.AddSingleton<IStartupRegistryService, StartupRegistryService>();
@@ -138,6 +139,7 @@ namespace V_Launcher
                     services.AddTransient<LauncherViewModel>();
                     services.AddTransient<CredentialManagementViewModel>();
                     services.AddTransient<ExecutableManagementViewModel>();
+                    services.AddTransient<NetworkDriveManagementViewModel>();
                 });
         }
 

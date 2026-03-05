@@ -37,6 +37,10 @@
         <DataTemplate DataType="{x:Type vm:AdHocLauncherViewModel}">
             <views:AdHocLauncherView/>
         </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:NetworkDriveManagementViewModel}">
+            <views:NetworkDriveManagementView/>
+        </DataTemplate>
         
         <!-- Styles -->
         <Style x:Key="NavigationButtonStyle" TargetType="Button">
@@ -159,6 +163,9 @@
                             Style="{StaticResource NavigationButtonStyle}"/>
                     <Button Content="Manage Apps" 
                             Command="{Binding ShowExecutableManagementViewCommand}"
+                            Style="{StaticResource NavigationButtonStyle}"/>
+                    <Button Content="Manage Network Drives"
+                            Command="{Binding ShowNetworkDriveManagementViewCommand}"
                             Style="{StaticResource NavigationButtonStyle}"/>
                     <Button Content="{x:Static resources:AdHocResources.AdHocNavigationLabel}"
                             Command="{Binding ShowAdHocLauncherViewCommand}"

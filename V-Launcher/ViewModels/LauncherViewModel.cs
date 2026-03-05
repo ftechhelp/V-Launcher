@@ -17,6 +17,7 @@ public partial class LauncherViewModel : ViewModelBase
     private readonly ICredentialService _credentialService;
     private readonly IProcessLauncher _processLauncher;
     private readonly IConfigurationRepository _configurationRepository;
+    private readonly INetworkDriveService _networkDriveService;
 
     [ObservableProperty]
     private ObservableCollection<ExecutableItem> _executableItems = new();
@@ -39,6 +40,12 @@ public partial class LauncherViewModel : ViewModelBase
     [ObservableProperty]
     private LauncherOrderMode _launcherOrderMode = LauncherOrderMode.Custom;
 
+    [ObservableProperty]
+    private ObservableCollection<NetworkDriveItem> _networkDriveItems = new();
+
+    [ObservableProperty]
+    private bool _isOpeningNetworkDrive;
+
     private bool _isRefreshing;
     private bool _isLoadingOrderMode;
 
@@ -46,16 +53,19 @@ public partial class LauncherViewModel : ViewModelBase
         IExecutableService executableService,
         ICredentialService credentialService,
         IProcessLauncher processLauncher,
-        IConfigurationRepository configurationRepository)
+        IConfigurationRepository configurationRepository,
+        INetworkDriveService networkDriveService)
     {
         _executableService = executableService;
         _credentialService = credentialService;
         _processLauncher = processLauncher;
         _configurationRepository = configurationRepository;
+        _networkDriveService = networkDriveService;
 
         LaunchExecutableCommand = new AsyncRelayCommand<ExecutableItem>(LaunchExecutableAsync, CanLaunchExecutable);
         RefreshExecutablesCommand = new AsyncRelayCommand(RefreshExecutablesAsync, () => !IsLoading);
         LoadExecutablesCommand = new AsyncRelayCommand(LoadExecutablesAsync);
+        OpenNetworkDriveCommand = new AsyncRelayCommand<NetworkDriveItem>(OpenNetworkDriveAsync, CanOpenNetworkDrive);
 
         // Load executables on initialization
         _ = InitializeAsync();
@@ -66,6 +76,7 @@ public partial class LauncherViewModel : ViewModelBase
     public IAsyncRelayCommand<ExecutableItem> LaunchExecutableCommand { get; }
     public IAsyncRelayCommand RefreshExecutablesCommand { get; }
     public IAsyncRelayCommand LoadExecutablesCommand { get; }
+    public IAsyncRelayCommand<NetworkDriveItem> OpenNetworkDriveCommand { get; }
 
     #endregion
 
@@ -160,6 +171,7 @@ public partial class LauncherViewModel : ViewModelBase
     private async Task RefreshExecutablesAsync()
     {
         await LoadExecutablesAsync();
+        await LoadNetworkDrivesAsync();
         SetStatus("Executable list refreshed");
         
         // Clear status after a delay
@@ -170,6 +182,75 @@ public partial class LauncherViewModel : ViewModelBase
                 ClearStatus();
             }
         });
+    }
+
+    private async Task OpenNetworkDriveAsync(NetworkDriveItem? driveItem)
+    {
+        if (driveItem?.Configuration == null || driveItem.Account == null)
+        {
+            SetError("Invalid network drive configuration or account.");
+            return;
+        }
+
+        try
+        {
+            IsOpeningNetworkDrive = true;
+            ClearStatus();
+            SetStatus($"Opening {driveItem.Configuration.DisplayName}...");
+
+            var password = await _credentialService.DecryptPasswordAsync(driveItem.Account);
+            await _networkDriveService.OpenDriveAsync(driveItem.Configuration, driveItem.Account, password);
+
+            SetStatus($"Opened {driveItem.Configuration.DisplayName}");
+
+            _ = Task.Delay(2000).ContinueWith(_ =>
+            {
+                if (!IsDisposed)
+                {
+                    ClearStatus();
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            SetError($"Failed to open network drive: {ex.Message}");
+        }
+        finally
+        {
+            IsOpeningNetworkDrive = false;
+        }
+    }
+
+    private async Task LoadNetworkDrivesAsync()
+    {
+        try
+        {
+            var configurations = await _networkDriveService.GetConfigurationsAsync();
+            var accounts = await _credentialService.GetAccountsAsync();
+            var accountLookup = accounts.ToDictionary(item => item.Id, item => item);
+
+            var networkDriveItems = configurations
+                .Where(configuration => accountLookup.ContainsKey(configuration.ADAccountId))
+                .Select(configuration => new NetworkDriveItem
+                {
+                    Configuration = configuration,
+                    Account = accountLookup[configuration.ADAccountId]
+                })
+                .ToList();
+
+            await InvokeOnUIThreadAsync(() =>
+            {
+                NetworkDriveItems.Clear();
+                foreach (var item in networkDriveItems)
+                {
+                    NetworkDriveItems.Add(item);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            SetError($"Failed to load network drives: {ex.Message}");
+        }
     }
 
     private async Task LoadExecutablesAsync()
@@ -231,6 +312,8 @@ public partial class LauncherViewModel : ViewModelBase
             {
                 SetStatus("No executable configurations found. Use the configuration management to add executables.");
             }
+
+            await LoadNetworkDrivesAsync();
         }
         catch (Exception ex)
         {
@@ -362,6 +445,11 @@ public partial class LauncherViewModel : ViewModelBase
         return !IsLoading && !IsLaunching && executableItem?.Configuration != null && executableItem.Account != null;
     }
 
+    private bool CanOpenNetworkDrive(NetworkDriveItem? networkDriveItem)
+    {
+        return !IsLoading && !IsOpeningNetworkDrive && networkDriveItem?.Configuration != null && networkDriveItem.Account != null;
+    }
+
     #endregion
 
     #region Status and Error Handling
@@ -392,11 +480,17 @@ public partial class LauncherViewModel : ViewModelBase
     {
         RefreshExecutablesCommand.NotifyCanExecuteChanged();
         LaunchExecutableCommand.NotifyCanExecuteChanged();
+        OpenNetworkDriveCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnIsLaunchingChanged(bool value)
     {
         LaunchExecutableCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnIsOpeningNetworkDriveChanged(bool value)
+    {
+        OpenNetworkDriveCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnLauncherOrderModeChanged(LauncherOrderMode value)
@@ -412,10 +506,24 @@ public partial class LauncherViewModel : ViewModelBase
     {
         // Clear collections and dispose of any resources
         ExecutableItems.Clear();
+        NetworkDriveItems.Clear();
         base.OnDisposing();
     }
 
     #endregion
+}
+
+/// <summary>
+/// Represents a network drive item with its configuration and associated account.
+/// </summary>
+public class NetworkDriveItem
+{
+    public NetworkDriveConfiguration? Configuration { get; set; }
+    public ADAccount? Account { get; set; }
+
+    public string DisplayName => Configuration?.DisplayName ?? "Unknown";
+    public string RemotePath => Configuration?.RemotePath ?? string.Empty;
+    public string AccountDisplayName => Account?.DisplayName ?? "Unknown Account";
 }
 
 /// <summary>

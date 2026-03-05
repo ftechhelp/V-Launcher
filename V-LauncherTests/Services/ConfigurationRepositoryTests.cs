@@ -208,6 +208,52 @@ public class ConfigurationRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveNetworkDriveConfigurationsAsync_UpdatesConfigurationWithNetworkDrives()
+    {
+        // Arrange
+        var configuration = new NetworkDriveConfiguration
+        {
+            Id = Guid.NewGuid(),
+            DisplayName = "Fileshare",
+            RemotePath = "\\\\server\\share",
+            ADAccountId = Guid.NewGuid()
+        };
+
+        // Act
+        await _repository.SaveNetworkDriveConfigurationsAsync(new[] { configuration });
+
+        // Assert
+        var loaded = await _repository.LoadConfigurationAsync();
+        Assert.Single(loaded.NetworkDriveConfigurations);
+        Assert.Equal(configuration.RemotePath, loaded.NetworkDriveConfigurations[0].RemotePath);
+    }
+
+    [Fact]
+    public async Task LoadNetworkDriveConfigurationsAsync_ReturnsConfigurationsFromStorage()
+    {
+        // Arrange
+        var driveConfig = new NetworkDriveConfiguration
+        {
+            Id = Guid.NewGuid(),
+            DisplayName = "Finance",
+            RemotePath = "\\\\server\\finance",
+            ADAccountId = Guid.NewGuid()
+        };
+
+        await _repository.SaveConfigurationAsync(new ApplicationConfiguration
+        {
+            NetworkDriveConfigurations = new List<NetworkDriveConfiguration> { driveConfig }
+        });
+
+        // Act
+        var loaded = await _repository.LoadNetworkDriveConfigurationsAsync();
+
+        // Assert
+        Assert.Single(loaded);
+        Assert.Equal(driveConfig.DisplayName, loaded.First().DisplayName);
+    }
+
+    [Fact]
     public async Task SaveConfigurationAsync_WithNullConfiguration_ThrowsArgumentNullException()
     {
         // Act & Assert

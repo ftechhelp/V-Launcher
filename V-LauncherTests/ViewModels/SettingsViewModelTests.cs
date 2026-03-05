@@ -348,6 +348,9 @@ public class SettingsViewModelTests : IDisposable
         public Task<IEnumerable<ExecutableConfiguration>> LoadExecutableConfigurationsAsync() => 
             Task.FromResult(Enumerable.Empty<ExecutableConfiguration>());
         public Task SaveExecutableConfigurationsAsync(IEnumerable<ExecutableConfiguration> configurations) => Task.CompletedTask;
+        public Task<IEnumerable<NetworkDriveConfiguration>> LoadNetworkDriveConfigurationsAsync() =>
+            Task.FromResult(Enumerable.Empty<NetworkDriveConfiguration>());
+        public Task SaveNetworkDriveConfigurationsAsync(IEnumerable<NetworkDriveConfiguration> configurations) => Task.CompletedTask;
         public void Dispose() { }
     }
 

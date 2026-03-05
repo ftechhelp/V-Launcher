@@ -30,6 +30,9 @@ public partial class MainViewModel : ViewModelBase
     private AdHocLauncherViewModel _adHocLauncherViewModel;
 
     [ObservableProperty]
+    private NetworkDriveManagementViewModel _networkDriveManagementVm;
+
+    [ObservableProperty]
     private SettingsViewModel _settingsViewModel;
 
     [ObservableProperty]
@@ -53,6 +56,7 @@ public partial class MainViewModel : ViewModelBase
         IProcessLauncher processLauncher,
         IConfigurationRepository configurationRepository,
         IClipboardService clipboardService,
+        INetworkDriveService networkDriveService,
         SettingsViewModel settingsViewModel,
         ILogger<MainViewModel> logger)
     {
@@ -64,10 +68,11 @@ public partial class MainViewModel : ViewModelBase
         _logger = logger;
 
         // Initialize child ViewModels
-        _launcherViewModel = new LauncherViewModel(executableService, credentialService, processLauncher, configurationRepository);
+        _launcherViewModel = new LauncherViewModel(executableService, credentialService, processLauncher, configurationRepository, networkDriveService);
         _credentialManagementViewModel = new CredentialManagementViewModel(credentialService, RefreshDataAfterChangesAsync);
         _executableManagementViewModel = new ExecutableManagementViewModel(executableService, credentialService, RefreshDataAfterChangesAsync);
         _adHocLauncherViewModel = new AdHocLauncherViewModel(credentialService, executableService, processLauncher, clipboardService);
+        _networkDriveManagementVm = new NetworkDriveManagementViewModel(networkDriveService, credentialService, RefreshDataAfterChangesAsync);
         _settingsViewModel = settingsViewModel ?? throw new ArgumentNullException(nameof(settingsViewModel));
 
         // Set initial view to launcher
@@ -78,6 +83,7 @@ public partial class MainViewModel : ViewModelBase
         ShowCredentialManagementViewCommand = new RelayCommand(ShowCredentialManagementView, CanNavigate);
         ShowExecutableManagementViewCommand = new RelayCommand(ShowExecutableManagementView, CanNavigate);
         ShowAdHocLauncherViewCommand = new RelayCommand(ShowAdHocLauncherView, CanNavigate);
+        ShowNetworkDriveManagementViewCommand = new RelayCommand(ShowNetworkDriveManagementView, CanNavigate);
 
         InitializeApplicationCommand = new AsyncRelayCommand(InitializeApplicationAsync);
 
@@ -97,6 +103,7 @@ public partial class MainViewModel : ViewModelBase
     public IRelayCommand ShowCredentialManagementViewCommand { get; }
     public IRelayCommand ShowExecutableManagementViewCommand { get; }
     public IRelayCommand ShowAdHocLauncherViewCommand { get; }
+    public IRelayCommand ShowNetworkDriveManagementViewCommand { get; }
 
     public IAsyncRelayCommand InitializeApplicationCommand { get; }
 
@@ -138,6 +145,13 @@ public partial class MainViewModel : ViewModelBase
         CurrentViewModel = AdHocLauncherViewModel;
         ClearStatus();
         _ = AdHocLauncherViewModel.LoadAccountsCommand.ExecuteAsync(null);
+    }
+
+    private void ShowNetworkDriveManagementView()
+    {
+        CurrentViewModel = NetworkDriveManagementVm;
+        ClearStatus();
+        _ = NetworkDriveManagementVm.LoadConfigurationsCommand.ExecuteAsync(null);
     }
 
     private async Task RefreshExecutableManagementDataAsync()
@@ -183,6 +197,10 @@ public partial class MainViewModel : ViewModelBase
             initializationTasks.Add(SafeExecuteAsync(
                 () => AdHocLauncherViewModel.LoadAccountsCommand.ExecuteAsync(null),
                 "ad hoc tools initialization"));
+
+            initializationTasks.Add(SafeExecuteAsync(
+                () => NetworkDriveManagementVm.LoadConfigurationsCommand.ExecuteAsync(null),
+                "network drive management initialization"));
 
             // Wait for all initialization tasks to complete
             await Task.WhenAll(initializationTasks);
@@ -261,6 +279,15 @@ public partial class MainViewModel : ViewModelBase
             }
         };
 
+        NetworkDriveManagementVm.PropertyChanged += (sender, e) =>
+        {
+            if (e.PropertyName == nameof(NetworkDriveManagementVm.ValidationMessage) && CurrentViewModel == NetworkDriveManagementVm)
+            {
+                StatusMessage = NetworkDriveManagementVm.ValidationMessage;
+                HasError = NetworkDriveManagementVm.HasValidationError;
+            }
+        };
+
         // Subscribe to settings ViewModel events for status updates
         SettingsViewModel.PropertyChanged += (sender, e) =>
         {
@@ -324,6 +351,11 @@ public partial class MainViewModel : ViewModelBase
             StatusMessage = AdHocLauncherViewModel.StatusMessage;
             HasError = AdHocLauncherViewModel.HasError;
         }
+        else if (value == NetworkDriveManagementVm && !string.IsNullOrEmpty(NetworkDriveManagementVm.ValidationMessage))
+        {
+            StatusMessage = NetworkDriveManagementVm.ValidationMessage;
+            HasError = NetworkDriveManagementVm.HasValidationError;
+        }
     }
 
     partial void OnIsInitializingChanged(bool value)
@@ -333,6 +365,7 @@ public partial class MainViewModel : ViewModelBase
         ShowCredentialManagementViewCommand.NotifyCanExecuteChanged();
         ShowExecutableManagementViewCommand.NotifyCanExecuteChanged();
         ShowAdHocLauncherViewCommand.NotifyCanExecuteChanged();
+        ShowNetworkDriveManagementViewCommand.NotifyCanExecuteChanged();
 
     }
 
@@ -451,6 +484,8 @@ public partial class MainViewModel : ViewModelBase
             await ExecutableManagementViewModel.RefreshAvailableAccountsAsync();
 
             await AdHocLauncherViewModel.LoadAccountsCommand.ExecuteAsync(null);
+
+            await NetworkDriveManagementVm.LoadConfigurationsCommand.ExecuteAsync(null);
         }
         catch (Exception ex)
         {
@@ -550,6 +585,7 @@ public partial class MainViewModel : ViewModelBase
             try { CredentialManagementViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing CredentialManagementViewModel"); }
             try { ExecutableManagementViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing ExecutableManagementViewModel"); }
             try { AdHocLauncherViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing AdHocLauncherViewModel"); }
+            try { NetworkDriveManagementVm?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing NetworkDriveManagementViewModel"); }
             try { SettingsViewModel?.Dispose(); } catch (Exception ex) { _logger.LogError(ex, "Error disposing SettingsViewModel"); }
 
             _logger.LogDebug("MainViewModel disposal completed");

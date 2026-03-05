@@ -32,6 +32,18 @@ public interface IConfigurationRepository
     Task SaveExecutableConfigurationsAsync(IEnumerable<ExecutableConfiguration> configurations);
 
     /// <summary>
+    /// Loads all network drive configurations from persistent storage.
+    /// </summary>
+    /// <returns>Collection of network drive configurations</returns>
+    Task<IEnumerable<NetworkDriveConfiguration>> LoadNetworkDriveConfigurationsAsync();
+
+    /// <summary>
+    /// Saves network drive configurations to persistent storage.
+    /// </summary>
+    /// <param name="configurations">Collection of network drive configurations to save</param>
+    Task SaveNetworkDriveConfigurationsAsync(IEnumerable<NetworkDriveConfiguration> configurations);
+
+    /// <summary>
     /// Loads the complete application configuration
     /// </summary>
     /// <returns>Application configuration containing all data</returns>

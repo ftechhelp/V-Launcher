@@ -240,6 +240,17 @@ public class TestConfigurationRepository : IConfigurationRepository
         return Task.CompletedTask;
     }
 
+    public Task<IEnumerable<NetworkDriveConfiguration>> LoadNetworkDriveConfigurationsAsync()
+    {
+        return Task.FromResult(_configuration.NetworkDriveConfigurations.AsEnumerable());
+    }
+
+    public Task SaveNetworkDriveConfigurationsAsync(IEnumerable<NetworkDriveConfiguration> configurations)
+    {
+        _configuration.NetworkDriveConfigurations = configurations.ToList();
+        return Task.CompletedTask;
+    }
+
     public Task<ApplicationConfiguration> LoadConfigurationAsync()
     {
         return Task.FromResult(_configuration);
@@ -249,6 +260,7 @@ public class TestConfigurationRepository : IConfigurationRepository
     {
         _configuration.ADAccounts = configuration.ADAccounts;
         _configuration.ExecutableConfigurations = configuration.ExecutableConfigurations;
+        _configuration.NetworkDriveConfigurations = configuration.NetworkDriveConfigurations;
         _configuration.Settings = configuration.Settings;
         _configuration.Version = configuration.Version;
         _configuration.LastSaved = configuration.LastSaved;

@@ -155,96 +155,150 @@
         </StackPanel>
         
         <!-- Main Content Area -->
-        <Grid Grid.Row="2">
-            <!-- Loading Indicator -->
-            <Grid Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
-                <StackPanel HorizontalAlignment="Center" 
-                            VerticalAlignment="Center"
-                            Margin="40">
-                    <ProgressBar IsIndeterminate="True" 
-                                 Width="200" 
-                                 Height="20"
-                                 Margin="0,0,0,15"
-                                 Style="{StaticResource RedWhiteProgressBarStyle}"/>
-                    <TextBlock Text="Loading applications..." 
-                               HorizontalAlignment="Center"
-                               FontSize="14"
-                               Foreground="{StaticResource TextSecondaryBrush}"/>
-                </StackPanel>
-            </Grid>
-            
-            <!-- Executable Icons Grid -->
-            <ListBox ItemsSource="{Binding ExecutableItems}"
-                     Visibility="{Binding IsLoading, Converter={StaticResource InverseBoolToVisibilityConverter}}"
-                     SelectionMode="Single"
-                     Background="Transparent"
-                     BorderThickness="0"
-                     AllowDrop="{Binding IsCustomOrderMode}"
-                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                     PreviewMouseLeftButtonDown="ExecutableItems_PreviewMouseLeftButtonDown"
-                     MouseMove="ExecutableItems_MouseMove"
-                     DragOver="ExecutableItems_DragOver"
-                     Drop="ExecutableItems_Drop">
-                    <ListBox.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal" 
-                                       HorizontalAlignment="Center"/>
-                        </ItemsPanelTemplate>
-                    </ListBox.ItemsPanel>
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="Padding" Value="0"/>
-                            <Setter Property="Margin" Value="0"/>
-                            <Setter Property="BorderThickness" Value="0"/>
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="Focusable" Value="False"/>
-                            <Setter Property="IsTabStop" Value="False"/>
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Button Command="{Binding DataContext.LaunchExecutableCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                    CommandParameter="{Binding}"
-                                    Style="{StaticResource ExecutableButtonStyle}">
-                                <StackPanel>
-                                    <!-- Executable Icon -->
-                                    <Image Style="{StaticResource ExecutableIconStyle}">
-                                        <Image.Source>
-                                            <PriorityBinding>
-                                                <Binding Path="Icon"/>
-                                                <Binding Source="{StaticResource DefaultExecutableIcon}"/>
-                                            </PriorityBinding>
-                                        </Image.Source>
-                                    </Image>
-                                    
-                                    <!-- Executable Name -->
-                                    <TextBlock Text="{Binding DisplayName}" 
-                                               Style="{StaticResource ExecutableLabelStyle}"/>
-                                    
-                                    <!-- Account Name -->
-                                    <TextBlock Text="{Binding AccountDisplayName}" 
-                                               Style="{StaticResource AccountLabelStyle}"/>
-                                </StackPanel>
-                            </Button>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-                
-            <!-- Empty State -->
-            <StackPanel Style="{StaticResource EmptyStateStyle}"
-                        Visibility="{Binding ExecutableItems.Count, Converter={StaticResource InverseBoolToVisibilityConverter}}">
-                <TextBlock Text="📱" 
-                           FontSize="48" 
-                           HorizontalAlignment="Center"
-                           Margin="0,0,0,20"/>
-                <TextBlock Text="No applications configured" 
-                           Style="{StaticResource EmptyStateTextStyle}"/>
-                <TextBlock Text="Use the 'Manage Apps' section to add executable configurations" 
-                           Style="{StaticResource EmptyStateTextStyle}"
-                           FontSize="14"/>
-            </StackPanel>
-        </Grid>
+        <TabControl Grid.Row="2">
+            <TabItem Header="Applications">
+                <Grid>
+                    <Grid Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <StackPanel HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Margin="40">
+                            <ProgressBar IsIndeterminate="True"
+                                         Width="200"
+                                         Height="20"
+                                         Margin="0,0,0,15"
+                                         Style="{StaticResource RedWhiteProgressBarStyle}"/>
+                            <TextBlock Text="Loading applications..."
+                                       HorizontalAlignment="Center"
+                                       FontSize="14"
+                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <ListBox ItemsSource="{Binding ExecutableItems}"
+                             Visibility="{Binding IsLoading, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                             SelectionMode="Single"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             AllowDrop="{Binding IsCustomOrderMode}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             PreviewMouseLeftButtonDown="ExecutableItems_PreviewMouseLeftButtonDown"
+                             MouseMove="ExecutableItems_MouseMove"
+                             DragOver="ExecutableItems_DragOver"
+                             Drop="ExecutableItems_Drop">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"
+                                           HorizontalAlignment="Center"/>
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Focusable" Value="False"/>
+                                <Setter Property="IsTabStop" Value="False"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Button Command="{Binding DataContext.LaunchExecutableCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}"
+                                        Style="{StaticResource ExecutableButtonStyle}">
+                                    <StackPanel>
+                                        <Image Style="{StaticResource ExecutableIconStyle}">
+                                            <Image.Source>
+                                                <PriorityBinding>
+                                                    <Binding Path="Icon"/>
+                                                    <Binding Source="{StaticResource DefaultExecutableIcon}"/>
+                                                </PriorityBinding>
+                                            </Image.Source>
+                                        </Image>
+
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   Style="{StaticResource ExecutableLabelStyle}"/>
+
+                                        <TextBlock Text="{Binding AccountDisplayName}"
+                                                   Style="{StaticResource AccountLabelStyle}"/>
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <StackPanel Style="{StaticResource EmptyStateStyle}"
+                                Visibility="{Binding ExecutableItems.Count, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                        <TextBlock Text="📱"
+                                   FontSize="48"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,20"/>
+                        <TextBlock Text="No applications configured"
+                                   Style="{StaticResource EmptyStateTextStyle}"/>
+                        <TextBlock Text="Use the 'Manage Apps' section to add executable configurations"
+                                   Style="{StaticResource EmptyStateTextStyle}"
+                                   FontSize="14"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Network Drives">
+                <Grid Margin="10">
+                    <ListBox ItemsSource="{Binding NetworkDriveItems}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{StaticResource MediumGrayBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="12"
+                                        Margin="0,0,0,10"
+                                        Background="{StaticResource OffWhiteBrush}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{Binding DisplayName}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding RemotePath}" Margin="0,4,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <TextBlock Text="{Binding AccountDisplayName}" Margin="0,2,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+
+                                        <Button Grid.Column="1"
+                                                Content="Open"
+                                                Command="{Binding DataContext.OpenNetworkDriveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{StaticResource ExecutableButtonStyle}"
+                                                Width="110"
+                                                Height="40"
+                                                Margin="10,0,0,0"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <StackPanel Style="{StaticResource EmptyStateStyle}"
+                                Visibility="{Binding NetworkDriveItems.Count, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                        <TextBlock Text="🗂"
+                                   FontSize="48"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,20"/>
+                        <TextBlock Text="No network drives configured"
+                                   Style="{StaticResource EmptyStateTextStyle}"/>
+                        <TextBlock Text="Use the 'Manage Network Drives' section to add mappings"
+                                   Style="{StaticResource EmptyStateTextStyle}"
+                                   FontSize="14"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+        </TabControl>
         
         <!-- Launch Status -->
         <Border Grid.Row="3" 
@@ -261,6 +315,26 @@
                              Margin="0,0,15,0"
                              Style="{StaticResource RedWhiteProgressBarStyle}"/>
                 <TextBlock Text="{Binding StatusMessage}" 
+                           VerticalAlignment="Center"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}"/>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="3"
+                Background="{StaticResource OffWhiteBrush}"
+                BorderBrush="{StaticResource MediumGrayBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="15,10"
+                Visibility="{Binding IsOpeningNetworkDrive, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center">
+                <ProgressBar IsIndeterminate="True"
+                             Width="150"
+                             Height="16"
+                             Margin="0,0,15,0"
+                             Style="{StaticResource RedWhiteProgressBarStyle}"/>
+                <TextBlock Text="{Binding StatusMessage}"
                            VerticalAlignment="Center"
                            FontWeight="SemiBold"
                            Foreground="{StaticResource TextPrimaryBrush}"/>

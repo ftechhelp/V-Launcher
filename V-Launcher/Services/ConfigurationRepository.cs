@@ -83,6 +83,20 @@ public class ConfigurationRepository : IConfigurationRepository
         await SaveConfigurationAsync(configuration);
     }
 
+    public async Task<IEnumerable<NetworkDriveConfiguration>> LoadNetworkDriveConfigurationsAsync()
+    {
+        var configuration = await LoadConfigurationAsync();
+        return configuration.NetworkDriveConfigurations;
+    }
+
+    public async Task SaveNetworkDriveConfigurationsAsync(IEnumerable<NetworkDriveConfiguration> configurations)
+    {
+        var configuration = await LoadConfigurationAsync();
+        configuration.NetworkDriveConfigurations = configurations.ToList();
+        configuration.LastSaved = DateTime.UtcNow;
+        await SaveConfigurationAsync(configuration);
+    }
+
     public async Task<ApplicationConfiguration> LoadConfigurationAsync()
     {
         await _fileLock.WaitAsync();
