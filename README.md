@@ -34,6 +34,12 @@ V-Launcher is a secure WPF application that enables users to launch applications
 - **Minimize to Tray**: Minimize to system tray instead of taskbar
 - **System Tray Integration**: Quick access from notification area with context menu
 
+### 🔄 Application Updates
+- **GitLab Release Checks**: Checks GitLab for the latest tagged release
+- **Manual Update Trigger**: "Check Updates" button in the main window
+- **Startup Update Check**: Automatically checks for updates during app startup
+- **Installer Launch**: Downloads and starts update installer when a newer version is found
+
 ## System Requirements
 
 ### Operating System
@@ -150,6 +156,7 @@ V-Launcher is a secure WPF application that enables users to launch applications
    - **Start on Windows Start**: Enable to launch V-Launcher automatically when Windows starts
    - **Start Minimized**: Enable to start the application minimized to system tray
    - **Minimize on Close**: Enable to minimize to system tray instead of closing when clicking X
+   - **Check Updates**: Click to manually check GitLab for newer versions and launch installer if available
    - All settings are saved automatically when changed
 
 4. **System Tray Usage**
@@ -165,14 +172,37 @@ V-Launcher stores its configuration files in the user's AppData folder:
 
 ```
 %APPDATA%\V-Launcher\
-├── config.json          # Main configuration file (includes settings)
-└── logs\                 # Application logs (if logging is enabled)
+├── configuration.json          # Main configuration file (includes settings)
+├── configuration.backup.json   # Backup copy for recovery
+└── logs\                       # Application logs (if logging is enabled)
+
+%LOCALAPPDATA%\V-Launcher\
+└── configuration.backup.json   # Additional backup copy for recovery
 ```
 
 The configuration file includes:
 - Encrypted AD account credentials
 - Executable configurations
 - Application settings (startup behavior, minimize options)
+
+### Configuration Resilience During Updates
+
+To help protect data during upgrades or installer changes, V-Launcher now:
+
+- Writes configuration atomically (temp file + replace)
+- Maintains backup copies of configuration in both `%APPDATA%` and `%LOCALAPPDATA%`
+- Automatically recovers from backup if the primary configuration is missing, empty, or corrupted
+- Restores the primary `configuration.json` after successful recovery
+
+This means configuration is significantly more resilient if an update process affects the primary config file.
+
+### Update Configuration (GitLab)
+
+V-Launcher supports optional environment variables for update checks:
+
+- `VLAUNCHER_GITLAB_HOST` (default: `https://gitlab.abbotsford.ca`)
+- `VLAUNCHER_GITLAB_PROJECT` (default: `vfontaine/v-launcher`)
+- `VLAUNCHER_GITLAB_TOKEN` (optional, for private projects)
 
 ## Security Information
 
@@ -232,8 +262,18 @@ The configuration file includes:
 **Solutions**:
 1. **File Permissions**: Check write permissions to `%APPDATA%\V-Launcher\`
 2. **Disk Space**: Ensure sufficient disk space is available
-3. **File Corruption**: Delete `config.json` to reset (will lose all configurations)
-4. **Antivirus**: Check if antivirus is blocking file access
+3. **Backup Recovery**: If `configuration.json` is missing/corrupt, restart app to trigger automatic recovery from backup
+4. **Reset (Last Resort)**: Delete `configuration.json` and backup files only if you intentionally want a clean reset
+5. **Antivirus**: Check if antivirus is blocking file access
+
+#### Update Check Issues
+**Problem**: "Check Updates" does not find updates or fails
+
+**Solutions**:
+1. **Network Access**: Ensure machine can access your GitLab host
+2. **Project/Tag Format**: Confirm releases use semantic version tags (e.g., `v1.2.3`)
+3. **Private GitLab**: Set `VLAUNCHER_GITLAB_TOKEN` when release API requires auth
+4. **Installer Asset**: Ensure release contains a downloadable `.exe` or `.msi` asset link
 
 #### Windows Startup Issues
 **Problem**: Application doesn't start with Windows despite setting enabled
