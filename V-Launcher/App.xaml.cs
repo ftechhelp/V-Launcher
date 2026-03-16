@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using V_Launcher.Services;
 using V_Launcher.ViewModels;
+using V_Launcher.Views;
 
 namespace V_Launcher
 {
@@ -22,6 +23,10 @@ namespace V_Launcher
         {
             try
             {
+                // Prevent WPF from shutting down while auth dialogs are closing
+                // before the main window is fully established.
+                ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
                 // Set up global exception handlers
                 SetupGlobalExceptionHandlers();
 
@@ -34,6 +39,41 @@ namespace V_Launcher
                 // Get logger after host is started
                 _logger = _host.Services.GetRequiredService<ILogger<App>>();
                 _logger.LogInformation("Application starting up");
+
+                // Perform mandatory OTP authentication
+                var totpService = _host.Services.GetRequiredService<ITotpService>();
+                await totpService.LoadConfigurationAsync();
+
+                if (!totpService.IsOtpConfigured)
+                {
+                    // First launch: force OTP setup before allowing access
+                    _logger.LogInformation("OTP not configured, requiring initial setup");
+                    var setupWindow = new OtpSetupWindow(totpService);
+                    bool? setupResult = setupWindow.ShowDialog();
+
+                    if (setupResult != true || !setupWindow.SetupCompleted)
+                    {
+                        _logger.LogWarning("OTP setup was not completed, shutting down");
+                        Shutdown(1);
+                        return;
+                    }
+
+                    _logger.LogInformation("OTP setup completed on first launch");
+                }
+
+                // Always require OTP verification at launch
+                _logger.LogInformation("Prompting for OTP verification");
+                var verificationWindow = new OtpVerificationWindow(totpService);
+                bool? verifyResult = verificationWindow.ShowDialog();
+
+                if (verifyResult != true || !verificationWindow.IsVerified)
+                {
+                    _logger.LogWarning("OTP verification failed or was cancelled, shutting down");
+                    Shutdown(1);
+                    return;
+                }
+
+                _logger.LogInformation("OTP verification successful");
 
                 // Get the main ViewModel
                 _mainViewModel = _host.Services.GetRequiredService<MainViewModel>();
@@ -50,7 +90,9 @@ namespace V_Launcher
                 // Check if we should start minimized
                 if (_mainViewModel.SettingsViewModel.Settings.StartMinimized)
                 {
-                    // Start minimized to tray - don't show the window at all
+                    // Start minimized to tray - show once so WPF tracks the main window lifecycle,
+                    // then immediately minimize to tray.
+                    mainWindow.Show();
                     mainWindow.WindowState = WindowState.Minimized;
                     mainWindow.ShowInTaskbar = false;
                     // Call MinimizeToTrayExternal to properly set up the tray icon
@@ -62,6 +104,9 @@ namespace V_Launcher
                 }
                 
                 MainWindow = mainWindow;
+
+                // Main window lifecycle now controls application shutdown.
+                ShutdownMode = ShutdownMode.OnMainWindowClose;
 
                 _logger.LogInformation("Application startup completed successfully");
                 base.OnStartup(e);
@@ -133,6 +178,7 @@ namespace V_Launcher
                     services.AddSingleton<IClipboardService, ClipboardService>();
                     services.AddSingleton<IProcessLauncher, ProcessLauncher>();
                     services.AddSingleton<IStartupRegistryService, StartupRegistryService>();
+                    services.AddSingleton<ITotpService, TotpService>();
                     services.AddSingleton<IApplicationUpdateService>(provider =>
                     {
                         var logger = provider.GetRequiredService<ILogger<ApplicationUpdateService>>();

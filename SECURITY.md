@@ -41,6 +41,29 @@ byte[] decryptedData = ProtectedData.Unprotect(
 4. **OS-Level Protection**: Leverages Windows security infrastructure
 5. **Automatic Key Rotation**: Keys are rotated when user passwords change
 
+## OTP (TOTP) Authentication Security
+
+### Startup Authentication Controls
+
+- OTP setup is required before first use of the application.
+- OTP verification is required at every application launch.
+- A valid 6-digit code is required to unlock access to the main window.
+- Verification attempts are limited per startup session to reduce brute-force risk.
+
+### OTP Secret Protection
+
+- The OTP secret seed is encrypted with Windows DPAPI (`CurrentUser` scope).
+- Encrypted OTP secret data is stored in configuration, never as plaintext.
+- Secret decryption occurs only for code validation operations.
+- If decryption fails (for example, user/machine context mismatch), verification fails safely.
+
+### TOTP Validation Parameters
+
+- Uses standard time-based one-time password validation.
+- 6-digit code length.
+- 30-second time step.
+- Small clock-skew tolerance window for usability.
+
 ## Credential Isolation and User Context Security
 
 ### Windows User Context Isolation
@@ -176,6 +199,7 @@ The application verifies file permissions on startup and will recreate the confi
 2. **Session Duration**: Application may run for extended periods when using tray functionality
 3. **Lock Screen**: Application continues running when workstation is locked
 4. **User Awareness**: Users may forget the application is running in the background
+5. **Pre-Access Gate**: OTP validation is required before access to launcher functionality
 
 #### Security Recommendations
 1. **Lock Workstation**: Always lock your workstation when leaving it unattended
@@ -269,6 +293,7 @@ The application verifies file permissions on startup and will recreate the confi
 - Credential usage can be tracked through Windows Event Logs
 - Configuration changes are logged with timestamps
 - Failed authentication attempts are recorded
+- OTP setup and OTP verification outcomes are logged (without secret/code values)
 - Application startup events are logged in Windows Event Logs
 - Registry modifications for startup entries are auditable
 - System tray operations and background execution are traceable through process monitoring

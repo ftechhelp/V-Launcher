@@ -10,6 +10,12 @@ V-Launcher is a secure WPF application that enables users to launch applications
 - **Multiple Account Support**: Store and manage multiple AD accounts
 - **Secure Memory Handling**: Passwords are cleared from memory after use
 
+### 🔑 OTP Two-Factor Authentication
+- **Mandatory at Launch**: A valid 6-digit TOTP code is required each time the app starts
+- **First-Run Setup**: If OTP is not configured, setup is required before accessing the app
+- **Authenticator Support**: Works with Microsoft Authenticator and other standard TOTP apps
+- **Encrypted OTP Secret**: The OTP seed is protected with Windows DPAPI and stored encrypted
+
 ### 🚀 Application Launching
 - **One-Click Launch**: Launch configured applications with a single click
 - **Custom Icons**: Support for custom application icons or automatic icon extraction
@@ -115,7 +121,13 @@ V-Launcher is a secure WPF application that enables users to launch applications
    - Run `V-Launcher.exe`
    - The application will create necessary configuration directories automatically
 
-2. **Add AD Accounts**
+2. **Complete OTP Setup (required on first launch)**
+   - Scan the QR code with Microsoft Authenticator (or another TOTP app)
+   - Or manually enter the provided secret key
+   - Enter a valid 6-digit code to confirm setup
+   - OTP setup must complete before the main window is available
+
+3. **Add AD Accounts**
    - Click "Manage Accounts" in the navigation bar
    - Click "Add Account" button
    - Fill in the account details:
@@ -125,7 +137,7 @@ V-Launcher is a secure WPF application that enables users to launch applications
      - **Password**: AD account password
    - Click "Save" to store the account securely
 
-3. **Configure Applications**
+4. **Configure Applications**
    - Click "Manage Apps" in the navigation bar
    - Click "Add Application" button
    - Configure the application:
@@ -139,19 +151,23 @@ V-Launcher is a secure WPF application that enables users to launch applications
 
 ### Daily Usage
 
-1. **Launch Applications**
+1. **Authenticate with OTP at startup**
+   - Enter the 6-digit code from your authenticator app
+   - Up to 5 attempts are allowed before startup is blocked
+
+2. **Launch Applications**
    - Click "Launcher" in the navigation bar
    - Click on any configured application icon
    - The application will launch automatically with the configured AD credentials
    - Status messages will appear at the bottom of the window
    - If minimized to tray, double-click the system tray icon to restore the window
 
-2. **Manage Configurations**
+3. **Manage Configurations**
    - Use "Manage Accounts" to add, edit, or remove AD accounts
    - Use "Manage Apps" to add, edit, or remove application configurations
    - Changes are saved automatically
 
-3. **Configure Application Settings**
+4. **Configure Application Settings**
    - Locate the settings checkboxes in the main window (near navigation buttons)
    - **Start on Windows Start**: Enable to launch V-Launcher automatically when Windows starts
    - **Start Minimized**: Enable to start the application minimized to system tray
@@ -159,7 +175,7 @@ V-Launcher is a secure WPF application that enables users to launch applications
    - **Check Updates**: Click to manually check GitLab for newer versions and launch installer if available
    - All settings are saved automatically when changed
 
-4. **System Tray Usage**
+5. **System Tray Usage**
    - When minimized to tray, V-Launcher appears in the notification area
    - **Double-click** the tray icon to restore the main window
    - **Right-click** the tray icon for quick actions:
@@ -182,6 +198,7 @@ V-Launcher stores its configuration files in the user's AppData folder:
 
 The configuration file includes:
 - Encrypted AD account credentials
+- Encrypted OTP secret (when OTP is enabled)
 - Executable configurations
 - Application settings (startup behavior, minimize options)
 
@@ -212,6 +229,12 @@ V-Launcher supports optional environment variables for update checks:
 - **No Plain Text**: Passwords are never stored in plain text
 - **Memory Security**: Passwords are cleared from memory immediately after use
 
+### OTP Security
+- **TOTP Standard**: Uses RFC-compatible 6-digit, time-based one-time passwords (30-second step)
+- **Encrypted Secret Storage**: OTP secret is stored encrypted with DPAPI (`CurrentUser` scope)
+- **Launch Gate**: Access to the main app requires successful OTP verification
+- **Limited Attempts**: Verification allows a limited number of attempts per startup session
+
 ### Data Protection
 - **Local Storage Only**: All data is stored locally on the user's machine
 - **No Network Transmission**: Credentials are never transmitted over the network except during authentication
@@ -235,6 +258,16 @@ V-Launcher supports optional environment variables for update checks:
 2. **Run as Administrator**: Try running the application as administrator
 3. **Check Event Logs**: Look in Windows Event Viewer for error details
 4. **Antivirus**: Temporarily disable antivirus to check for interference
+
+#### OTP Verification Issues
+**Problem**: App closes or denies access after entering OTP code
+
+**Solutions**:
+1. **Check Device Time**: Ensure Windows and phone time are set automatically and in sync
+2. **Use Current Code Quickly**: Enter the latest 6-digit code before it rotates
+3. **Verify Correct Account**: Confirm you are reading the code for the V-Launcher entry in your authenticator
+4. **Retry Startup**: Close and reopen app after failed attempts
+5. **Reconfigure OTP**: If authenticator was reset/reinstalled, complete setup again
 
 #### Authentication Failures
 **Problem**: "Authentication failed" or "Access denied" when launching applications

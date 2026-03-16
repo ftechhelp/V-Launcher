@@ -26,6 +26,16 @@ public class ApplicationConfiguration
     public ApplicationSettings Settings { get; set; } = new();
 
     /// <summary>
+    /// Whether OTP (two-factor) authentication is enabled for application launch
+    /// </summary>
+    public bool IsOtpEnabled { get; set; }
+
+    /// <summary>
+    /// DPAPI-encrypted TOTP secret key bytes, or null if OTP is not configured
+    /// </summary>
+    public byte[]? OtpEncryptedSecret { get; set; }
+
+    /// <summary>
     /// Configuration file version for future compatibility
     /// </summary>
     public string Version { get; set; } = "1.0";
