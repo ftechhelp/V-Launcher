@@ -42,10 +42,10 @@ V-Launcher is a secure WPF application that enables users to launch applications
 - **System Tray Integration**: Quick access from notification area with context menu
 
 ### 🔄 Application Updates
-- **GitLab Release Checks**: Checks GitLab for the latest tagged release
+- **GitHub Release Checks**: Checks GitHub for the latest tagged release
 - **Manual Update Trigger**: "Check Updates" button in the main window
 - **Startup Update Check**: Automatically checks for updates during app startup
-- **Installer Launch**: Downloads and starts update installer when a newer version is found
+- **Verified Installer Launch**: Downloads and starts the update installer only after checksum and signature verification succeeds
 
 ## System Requirements
 
@@ -207,6 +207,7 @@ The configuration file includes:
 - Encrypted OTP secret (when OTP is enabled)
 - Executable configurations
 - Application settings (startup behavior, minimize options)
+- Integrity metadata used to detect tampering before config is loaded
 
 ### Configuration Resilience During Updates
 
@@ -214,18 +215,22 @@ To help protect data during upgrades or installer changes, V-Launcher now:
 
 - Writes configuration atomically (temp file + replace)
 - Maintains backup copies of configuration in both `%APPDATA%` and `%LOCALAPPDATA%`
+- Signs saved configuration content with a DPAPI-protected integrity key
 - Automatically recovers from backup if the primary configuration is missing, empty, or corrupted
+- Automatically recovers from backup if the primary configuration fails integrity validation
 - Restores the primary `configuration.json` after successful recovery
 
 This means configuration is significantly more resilient if an update process affects the primary config file.
 
-### Update Configuration (GitLab)
+### Update Configuration (GitHub)
 
 V-Launcher supports optional environment variables for update checks:
 
-- `VLAUNCHER_GITLAB_HOST` (default: `https://gitlab.abbotsford.ca`)
-- `VLAUNCHER_GITLAB_PROJECT` (default: `vfontaine/v-launcher`)
-- `VLAUNCHER_GITLAB_TOKEN` (optional, for private projects)
+- `VLAUNCHER_GITHUB_API_BASE` (default: `https://api.github.com`)
+- `VLAUNCHER_GITHUB_REPOSITORY` (default: `ftechhelp/V-Launcher`)
+- `VLAUNCHER_GITHUB_TOKEN` (optional, for private repositories or higher rate limits)
+- `VLAUNCHER_ALLOWED_SIGNER_SUBJECTS` (optional, semicolon/comma-separated signer subject filters)
+- `VLAUNCHER_ALLOWED_SIGNER_THUMBPRINTS` (optional, semicolon/comma-separated signer certificate thumbprints)
 
 ## Security Information
 
@@ -246,6 +251,12 @@ V-Launcher supports optional environment variables for update checks:
 - **Local Storage Only**: All data is stored locally on the user's machine
 - **No Network Transmission**: Credentials are never transmitted over the network except during authentication
 - **File Permissions**: Configuration files inherit Windows user permissions
+- **Integrity Validation**: Signed configuration content is validated before the app trusts it
+
+### Update Security
+- **Release Source**: Updates are discovered from GitHub releases for `ftechhelp/V-Launcher`
+- **Checksum Verification**: Downloaded installers must match published SHA-256 metadata before launch
+- **Signature Verification**: Downloaded installers must have a valid Authenticode signature before launch
 
 ### Security Best Practices
 - **Regular Password Updates**: Update stored passwords when AD passwords change
@@ -310,10 +321,11 @@ V-Launcher supports optional environment variables for update checks:
 **Problem**: "Check Updates" does not find updates or fails
 
 **Solutions**:
-1. **Network Access**: Ensure machine can access your GitLab host
-2. **Project/Tag Format**: Confirm releases use semantic version tags (e.g., `v1.2.3`)
-3. **Private GitLab**: Set `VLAUNCHER_GITLAB_TOKEN` when release API requires auth
-4. **Installer Asset**: Ensure release contains a downloadable `.exe` or `.msi` asset link
+1. **Network Access**: Ensure the machine can access `api.github.com` and GitHub release asset URLs
+2. **Repository/Tag Format**: Confirm the configured repository publishes semantic version tags (e.g., `v1.2.3`)
+3. **Private Repository**: Set `VLAUNCHER_GITHUB_TOKEN` when the release API requires auth
+4. **Installer Asset**: Ensure the release contains a downloadable `.exe` or `.msi` asset
+5. **Integrity Metadata**: Ensure the installer asset publishes SHA-256 metadata and the installer is Authenticode-signed
 
 #### Windows Startup Issues
 **Problem**: Application doesn't start with Windows despite setting enabled

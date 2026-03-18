@@ -8,5 +8,7 @@ public sealed record UpdateCheckResult(
     Version CurrentVersion,
     Version? LatestVersion,
     string? LatestTag,
-    string? InstallerUrl
+    string? InstallerUrl,
+    string? InstallerSha256,
+    string? InstallerChecksumUrl
 );

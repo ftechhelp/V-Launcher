@@ -1,4 +1,6 @@
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using V_Launcher.Models;
 
@@ -9,8 +11,12 @@ namespace V_Launcher.Services;
 /// </summary>
 public class ConfigurationRepository : IConfigurationRepository
 {
+    private const string IntegrityFormatVersion = "2.0";
+    private const string IntegrityAlgorithm = "HMACSHA256";
+
     private readonly string _configurationFilePath;
     private readonly IReadOnlyList<string> _backupFilePaths;
+    private readonly string _integrityKeyFilePath;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly SemaphoreSlim _fileLock = new(1, 1);
 
@@ -29,6 +35,7 @@ public class ConfigurationRepository : IConfigurationRepository
         Directory.CreateDirectory(localAppFolder);
         
         _configurationFilePath = Path.Combine(appFolder, "configuration.json");
+        _integrityKeyFilePath = Path.Combine(appFolder, "configuration.integrity.key");
         _backupFilePaths = new[]
         {
             Path.Combine(appFolder, "configuration.backup.json"),
@@ -49,6 +56,7 @@ public class ConfigurationRepository : IConfigurationRepository
     public ConfigurationRepository(string configurationFilePath)
     {
         _configurationFilePath = configurationFilePath;
+        _integrityKeyFilePath = _configurationFilePath + ".integrity.key";
         _backupFilePaths = new[] { _configurationFilePath + ".bak" };
         
         // Ensure the directory exists
@@ -112,37 +120,37 @@ public class ConfigurationRepository : IConfigurationRepository
         await _fileLock.WaitAsync();
         try
         {
-            if (!File.Exists(_configurationFilePath))
+            var primaryReadResult = await TryReadConfigurationFileAsync(_configurationFilePath);
+            if (primaryReadResult.Configuration is not null)
             {
-                return await RecoverConfigurationFromBackupsAsync() ?? new ApplicationConfiguration();
+                return primaryReadResult.Configuration;
             }
 
-            var jsonContent = await File.ReadAllTextAsync(_configurationFilePath);
-            
-            if (string.IsNullOrWhiteSpace(jsonContent))
+            var recoveredConfiguration = await RecoverConfigurationFromBackupsAsync();
+            if (recoveredConfiguration is not null)
             {
-                return await RecoverConfigurationFromBackupsAsync() ?? new ApplicationConfiguration();
+                return recoveredConfiguration;
             }
 
-            try
+            if (primaryReadResult.Failure is JsonException jsonException)
             {
-                var configuration = JsonSerializer.Deserialize<ApplicationConfiguration>(jsonContent, _jsonOptions);
-                return configuration ?? new ApplicationConfiguration();
+                throw new InvalidOperationException($"Failed to deserialize configuration file: {jsonException.Message}", jsonException);
             }
-            catch (JsonException ex)
-            {
-                var recoveredConfiguration = await RecoverConfigurationFromBackupsAsync();
-                if (recoveredConfiguration is not null)
-                {
-                    return recoveredConfiguration;
-                }
 
-                throw new InvalidOperationException($"Failed to deserialize configuration file: {ex.Message}", ex);
+            if (primaryReadResult.Failure is InvalidDataException invalidDataException)
+            {
+                throw new InvalidOperationException($"Failed to validate configuration file integrity: {invalidDataException.Message}", invalidDataException);
             }
+
+            return new ApplicationConfiguration();
         }
         catch (IOException ex)
         {
             throw new InvalidOperationException($"Failed to read configuration file: {ex.Message}", ex);
+        }
+        catch (CryptographicException ex)
+        {
+            throw new InvalidOperationException($"Failed to validate configuration file integrity: {ex.Message}", ex);
         }
         finally
         {
@@ -159,8 +167,20 @@ public class ConfigurationRepository : IConfigurationRepository
         try
         {
             configuration.LastSaved = DateTime.UtcNow;
-            
-            var jsonContent = JsonSerializer.Serialize(configuration, _jsonOptions);
+
+            var signature = await ComputeIntegritySignatureAsync(configuration);
+            var envelope = new ConfigurationEnvelope
+            {
+                FormatVersion = IntegrityFormatVersion,
+                Configuration = configuration,
+                Integrity = new ConfigurationIntegrityMetadata
+                {
+                    Algorithm = IntegrityAlgorithm,
+                    Signature = signature
+                }
+            };
+
+            var jsonContent = JsonSerializer.Serialize(envelope, _jsonOptions);
 
             await WriteConfigurationAtomicallyAsync(_configurationFilePath, jsonContent);
 
@@ -213,40 +233,145 @@ public class ConfigurationRepository : IConfigurationRepository
     {
         foreach (var backupFilePath in _backupFilePaths)
         {
-            if (!File.Exists(backupFilePath))
+            var backupReadResult = await TryReadConfigurationFileAsync(backupFilePath);
+            if (backupReadResult.Configuration is null || string.IsNullOrWhiteSpace(backupReadResult.StoredContent))
             {
                 continue;
             }
 
-            try
-            {
-                var backupContent = await File.ReadAllTextAsync(backupFilePath);
-                if (string.IsNullOrWhiteSpace(backupContent))
-                {
-                    continue;
-                }
+            await WriteConfigurationAtomicallyAsync(_configurationFilePath, backupReadResult.StoredContent);
 
-                var recoveredConfiguration = JsonSerializer.Deserialize<ApplicationConfiguration>(backupContent, _jsonOptions);
-                if (recoveredConfiguration is null)
-                {
-                    continue;
-                }
-
-                await WriteConfigurationAtomicallyAsync(_configurationFilePath, backupContent);
-
-                return recoveredConfiguration;
-            }
-            catch (JsonException)
-            {
-                continue;
-            }
-            catch (IOException)
-            {
-                continue;
-            }
+            return backupReadResult.Configuration;
         }
 
         return null;
+    }
+
+    private async Task<ConfigurationReadResult> TryReadConfigurationFileAsync(string filePath)
+    {
+        if (!File.Exists(filePath))
+        {
+            return ConfigurationReadResult.Empty;
+        }
+
+        try
+        {
+            var jsonContent = await File.ReadAllTextAsync(filePath);
+            if (string.IsNullOrWhiteSpace(jsonContent))
+            {
+                return ConfigurationReadResult.Empty;
+            }
+
+            using var jsonDocument = JsonDocument.Parse(jsonContent);
+            if (IsSignedEnvelope(jsonDocument.RootElement))
+            {
+                var envelope = JsonSerializer.Deserialize<ConfigurationEnvelope>(jsonContent, _jsonOptions);
+                if (envelope?.Configuration is null)
+                {
+                    throw new JsonException("Signed configuration envelope did not contain configuration data.");
+                }
+
+                await ValidateIntegrityAsync(envelope);
+                return new ConfigurationReadResult(envelope.Configuration, jsonContent, null);
+            }
+
+            var configuration = JsonSerializer.Deserialize<ApplicationConfiguration>(jsonContent, _jsonOptions);
+            return new ConfigurationReadResult(configuration ?? new ApplicationConfiguration(), jsonContent, null);
+        }
+        catch (JsonException ex)
+        {
+            return new ConfigurationReadResult(null, null, ex);
+        }
+        catch (InvalidDataException ex)
+        {
+            return new ConfigurationReadResult(null, null, ex);
+        }
+        catch (CryptographicException ex)
+        {
+            return new ConfigurationReadResult(null, null, ex);
+        }
+    }
+
+    private static bool IsSignedEnvelope(JsonElement rootElement)
+    {
+        return rootElement.ValueKind == JsonValueKind.Object
+            && rootElement.TryGetProperty("configuration", out _)
+            && rootElement.TryGetProperty("integrity", out _);
+    }
+
+    private async Task ValidateIntegrityAsync(ConfigurationEnvelope envelope)
+    {
+        if (envelope.Integrity is null)
+        {
+            throw new InvalidDataException("Configuration integrity metadata is missing.");
+        }
+
+        if (!string.Equals(envelope.Integrity.Algorithm, IntegrityAlgorithm, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException("Configuration integrity algorithm is not supported.");
+        }
+
+        if (string.IsNullOrWhiteSpace(envelope.Integrity.Signature))
+        {
+            throw new InvalidDataException("Configuration integrity signature is missing.");
+        }
+
+        byte[] expectedSignature;
+        byte[] providedSignature;
+
+        try
+        {
+            expectedSignature = await ComputeIntegritySignatureBytesAsync(envelope.Configuration, createKeyIfMissing: false);
+            providedSignature = Convert.FromHexString(envelope.Integrity.Signature);
+        }
+        catch (FormatException ex)
+        {
+            throw new InvalidDataException("Configuration integrity signature format is invalid.", ex);
+        }
+
+        if (!CryptographicOperations.FixedTimeEquals(expectedSignature, providedSignature))
+        {
+            throw new InvalidDataException("Configuration integrity validation failed.");
+        }
+    }
+
+    private async Task<string> ComputeIntegritySignatureAsync(ApplicationConfiguration configuration)
+    {
+        var signatureBytes = await ComputeIntegritySignatureBytesAsync(configuration, createKeyIfMissing: true);
+        return Convert.ToHexString(signatureBytes);
+    }
+
+    private async Task<byte[]> ComputeIntegritySignatureBytesAsync(ApplicationConfiguration configuration, bool createKeyIfMissing)
+    {
+        var key = await GetIntegrityKeyAsync(createKeyIfMissing);
+        var payloadJson = JsonSerializer.Serialize(configuration, _jsonOptions);
+
+        using var hmac = new HMACSHA256(key);
+        return hmac.ComputeHash(Encoding.UTF8.GetBytes(payloadJson));
+    }
+
+    private async Task<byte[]> GetIntegrityKeyAsync(bool createKeyIfMissing)
+    {
+        if (!File.Exists(_integrityKeyFilePath))
+        {
+            if (!createKeyIfMissing)
+            {
+                throw new InvalidDataException("Configuration integrity key is missing.");
+            }
+
+            var newKey = RandomNumberGenerator.GetBytes(32);
+            var protectedKey = ProtectedData.Protect(newKey, null, DataProtectionScope.CurrentUser);
+            await WriteBytesAtomicallyAsync(_integrityKeyFilePath, protectedKey);
+            return newKey;
+        }
+
+        var encryptedKey = await File.ReadAllBytesAsync(_integrityKeyFilePath);
+        if (encryptedKey.Length == 0)
+        {
+            throw new InvalidDataException("Configuration integrity key is empty.");
+        }
+
+        return ProtectedData.Unprotect(encryptedKey, null, DataProtectionScope.CurrentUser);
     }
 
     private static async Task WriteConfigurationAtomicallyAsync(string targetPath, string content)
@@ -264,11 +389,50 @@ public class ConfigurationRepository : IConfigurationRepository
         }
     }
 
+    private static async Task WriteBytesAtomicallyAsync(string targetPath, byte[] content)
+    {
+        var tempFilePath = targetPath + ".tmp";
+        await File.WriteAllBytesAsync(tempFilePath, content);
+
+        if (File.Exists(targetPath))
+        {
+            File.Replace(tempFilePath, targetPath, null);
+        }
+        else
+        {
+            File.Move(tempFilePath, targetPath);
+        }
+    }
+
     /// <summary>
     /// Disposes the repository and releases resources
     /// </summary>
     public void Dispose()
     {
         _fileLock?.Dispose();
+    }
+
+    private sealed record ConfigurationReadResult(
+        ApplicationConfiguration? Configuration,
+        string? StoredContent,
+        Exception? Failure)
+    {
+        public static ConfigurationReadResult Empty { get; } = new(null, null, null);
+    }
+
+    private sealed class ConfigurationEnvelope
+    {
+        public string FormatVersion { get; set; } = IntegrityFormatVersion;
+
+        public ApplicationConfiguration? Configuration { get; set; }
+
+        public ConfigurationIntegrityMetadata? Integrity { get; set; }
+    }
+
+    private sealed class ConfigurationIntegrityMetadata
+    {
+        public string Algorithm { get; set; } = IntegrityAlgorithm;
+
+        public string Signature { get; set; } = string.Empty;
     }
 }

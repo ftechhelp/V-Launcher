@@ -67,6 +67,30 @@ byte[] decryptedData = ProtectedData.Unprotect(
 
 ## Credential Isolation and User Context Security
 
+## Configuration Integrity Protection
+
+### Signed Configuration Envelope
+
+- Saved configuration is wrapped with integrity metadata before it is written to disk.
+- Integrity verification occurs before configuration data is trusted or loaded into the application.
+- Integrity failures trigger backup recovery instead of silently accepting tampered content.
+
+### Integrity Key Protection
+
+- The configuration integrity key is generated locally per user profile.
+- The integrity key is protected with Windows DPAPI (`CurrentUser` scope).
+- If the integrity key is unavailable or cannot decrypt, signed configuration validation fails safely.
+
+## Update Verification Controls
+
+### GitHub Release Trust Flow
+
+- Updates are discovered from GitHub releases for the configured repository.
+- Installer assets must provide SHA-256 integrity metadata.
+- Downloaded installers must match the expected SHA-256 value before launch.
+- Downloaded installers must pass Authenticode signature validation before launch.
+- Optional signer subject or certificate thumbprint allow-lists can further restrict trusted installers.
+
 ### Windows User Context Isolation
 
 #### Process-Level Security
@@ -102,6 +126,7 @@ byte[] decryptedData = ProtectedData.Unprotect(
 - Contains encrypted AD account credentials
 - Executable configuration mappings
 - Application settings and preferences (startup behavior, minimize options)
+- Integrity metadata used to detect tampering before load
 
 #### Windows Registry
 ```
@@ -117,6 +142,7 @@ HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run
 ```
 - Automatic backup created before configuration changes
 - Same security properties as primary configuration
+- Used for recovery when the primary config is missing, corrupted, or fails integrity validation
 
 ### File Permissions
 
@@ -296,6 +322,8 @@ The application verifies file permissions on startup and will recreate the confi
 - Failed authentication attempts are recorded
 - OTP setup and OTP verification outcomes are logged (without secret/code values)
 - OTP re-authentication after Windows session unlock is logged (without secret/code values)
+- Configuration integrity failures can be detected during load and recovery
+- Update verification failures stop installer launch before execution
 - Application startup events are logged in Windows Event Logs
 - Registry modifications for startup entries are auditable
 - System tray operations and background execution are traceable through process monitoring

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.Json;
 using V_Launcher.Models;
 using V_Launcher.Services;
 
@@ -87,6 +88,33 @@ public class ConfigurationRepositoryTests : IDisposable
         Assert.True(File.Exists(_testBackupPath));
         var backupContent = await File.ReadAllTextAsync(_testBackupPath);
         Assert.Contains("backupuser", backupContent);
+    }
+
+    [Fact]
+    public async Task SaveConfigurationAsync_WithValidConfiguration_WritesIntegrityEnvelope()
+    {
+        // Arrange
+        var configuration = new ApplicationConfiguration
+        {
+            ADAccounts =
+            [
+                new ADAccount
+                {
+                    Id = Guid.NewGuid(),
+                    DisplayName = "Integrity Account",
+                    Username = "integrityuser",
+                    Domain = "integritydomain"
+                }
+            ]
+        };
+
+        // Act
+        await _repository.SaveConfigurationAsync(configuration);
+        var fileContent = await File.ReadAllTextAsync(_testConfigPath);
+
+        // Assert
+        Assert.Contains("\"configuration\"", fileContent);
+        Assert.Contains("\"integrity\"", fileContent);
     }
 
     [Fact]
@@ -360,6 +388,103 @@ public class ConfigurationRepositoryTests : IDisposable
 
         var primaryContent = await File.ReadAllTextAsync(_testConfigPath);
         Assert.Contains("restoreuser", primaryContent);
+    }
+
+    [Fact]
+    public async Task LoadConfigurationAsync_WhenPrimarySignedConfigurationIsTampered_RecoversFromBackup()
+    {
+        // Arrange
+        var configuration = new ApplicationConfiguration
+        {
+            ADAccounts =
+            [
+                new ADAccount
+                {
+                    Id = Guid.NewGuid(),
+                    DisplayName = "Tamper Recovery Account",
+                    Username = "secureuser",
+                    Domain = "securedomain"
+                }
+            ]
+        };
+
+        await _repository.SaveConfigurationAsync(configuration);
+
+        var tamperedPrimaryContent = await File.ReadAllTextAsync(_testConfigPath);
+        tamperedPrimaryContent = tamperedPrimaryContent.Replace("secureuser", "tampereduser", StringComparison.Ordinal);
+        await File.WriteAllTextAsync(_testConfigPath, tamperedPrimaryContent);
+
+        // Act
+        var recoveredConfiguration = await _repository.LoadConfigurationAsync();
+
+        // Assert
+        Assert.Equal("secureuser", recoveredConfiguration.ADAccounts[0].Username);
+    }
+
+    [Fact]
+    public async Task LoadConfigurationAsync_WhenSignedConfigurationAndBackupAreTampered_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var configuration = new ApplicationConfiguration
+        {
+            ADAccounts =
+            [
+                new ADAccount
+                {
+                    Id = Guid.NewGuid(),
+                    DisplayName = "Tamper Detection Account",
+                    Username = "signeduser",
+                    Domain = "signeddomain"
+                }
+            ]
+        };
+
+        await _repository.SaveConfigurationAsync(configuration);
+
+        var tamperedPrimaryContent = await File.ReadAllTextAsync(_testConfigPath);
+        tamperedPrimaryContent = tamperedPrimaryContent.Replace("signeduser", "tamperedprimary", StringComparison.Ordinal);
+        await File.WriteAllTextAsync(_testConfigPath, tamperedPrimaryContent);
+
+        var tamperedBackupContent = await File.ReadAllTextAsync(_testBackupPath);
+        tamperedBackupContent = tamperedBackupContent.Replace("signeduser", "tamperedbackup", StringComparison.Ordinal);
+        await File.WriteAllTextAsync(_testBackupPath, tamperedBackupContent);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _repository.LoadConfigurationAsync());
+        Assert.Contains("Failed to validate configuration file integrity", exception.Message);
+    }
+
+    [Fact]
+    public async Task LoadConfigurationAsync_WithLegacyPlainConfiguration_LoadsSuccessfully()
+    {
+        // Arrange
+        var legacyConfiguration = new ApplicationConfiguration
+        {
+            ADAccounts =
+            [
+                new ADAccount
+                {
+                    Id = Guid.NewGuid(),
+                    DisplayName = "Legacy Account",
+                    Username = "legacyuser",
+                    Domain = "legacydomain"
+                }
+            ]
+        };
+
+        var legacyJson = JsonSerializer.Serialize(legacyConfiguration, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+
+        await File.WriteAllTextAsync(_testConfigPath, legacyJson);
+
+        // Act
+        var loadedConfiguration = await _repository.LoadConfigurationAsync();
+
+        // Assert
+        Assert.Equal("legacyuser", loadedConfiguration.ADAccounts[0].Username);
     }
 
     [Fact]
