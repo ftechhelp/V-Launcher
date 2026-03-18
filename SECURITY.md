@@ -47,6 +47,7 @@ byte[] decryptedData = ProtectedData.Unprotect(
 
 - OTP setup is required before first use of the application.
 - OTP verification is required at every application launch.
+- OTP verification is required again after a Windows session lock/unlock cycle.
 - A valid 6-digit code is required to unlock access to the main window.
 - Verification attempts are limited per startup session to reduce brute-force risk.
 
@@ -197,14 +198,14 @@ The application verifies file permissions on startup and will recreate the confi
 #### Security Implications
 1. **Persistent Access**: Credentials remain decryptable while application is running
 2. **Session Duration**: Application may run for extended periods when using tray functionality
-3. **Lock Screen**: Application continues running when workstation is locked
+3. **Lock Screen**: When the workstation is locked, the application hides and requires OTP again after unlock before the window is restored
 4. **User Awareness**: Users may forget the application is running in the background
 5. **Pre-Access Gate**: OTP validation is required before access to launcher functionality
 
 #### Security Recommendations
 1. **Lock Workstation**: Always lock your workstation when leaving it unattended
 2. **Exit Completely**: Use "Exit" from tray menu to fully close the application when not needed
-3. **Session Timeout**: Consider closing the application at end of work day
+3. **Re-Verify on Return**: Expect to complete OTP verification again after unlocking Windows
 4. **Monitor Processes**: Regularly review running processes for unexpected instances
 
 ### Startup Security Risks and Mitigations
@@ -294,6 +295,7 @@ The application verifies file permissions on startup and will recreate the confi
 - Configuration changes are logged with timestamps
 - Failed authentication attempts are recorded
 - OTP setup and OTP verification outcomes are logged (without secret/code values)
+- OTP re-authentication after Windows session unlock is logged (without secret/code values)
 - Application startup events are logged in Windows Event Logs
 - Registry modifications for startup entries are auditable
 - System tray operations and background execution are traceable through process monitoring

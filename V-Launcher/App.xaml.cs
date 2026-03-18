@@ -1,6 +1,8 @@
 ﻿using System.Windows;
+using System.Windows;
 using System.Windows.Threading;
 using System.Net.Http;
+using Microsoft.Win32;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -17,7 +19,11 @@ namespace V_Launcher
     {
         private IHost? _host;
         private MainViewModel? _mainViewModel;
+        private ITotpService? _totpService;
         private ILogger<App>? _logger;
+        private bool _restoreWindowAfterUnlock;
+        private bool _isSessionReauthenticationInProgress;
+        private bool _sessionSwitchSubscribed;
 
         protected override async void OnStartup(StartupEventArgs e)
         {
@@ -41,14 +47,14 @@ namespace V_Launcher
                 _logger.LogInformation("Application starting up");
 
                 // Perform mandatory OTP authentication
-                var totpService = _host.Services.GetRequiredService<ITotpService>();
-                await totpService.LoadConfigurationAsync();
+                _totpService = _host.Services.GetRequiredService<ITotpService>();
+                await _totpService.LoadConfigurationAsync();
 
-                if (!totpService.IsOtpConfigured)
+                if (!_totpService.IsOtpConfigured)
                 {
                     // First launch: force OTP setup before allowing access
                     _logger.LogInformation("OTP not configured, requiring initial setup");
-                    var setupWindow = new OtpSetupWindow(totpService);
+                    var setupWindow = new OtpSetupWindow(_totpService);
                     bool? setupResult = setupWindow.ShowDialog();
 
                     if (setupResult != true || !setupWindow.SetupCompleted)
@@ -63,10 +69,7 @@ namespace V_Launcher
 
                 // Always require OTP verification at launch
                 _logger.LogInformation("Prompting for OTP verification");
-                var verificationWindow = new OtpVerificationWindow(totpService);
-                bool? verifyResult = verificationWindow.ShowDialog();
-
-                if (verifyResult != true || !verificationWindow.IsVerified)
+                if (!ShowOtpVerificationDialog())
                 {
                     _logger.LogWarning("OTP verification failed or was cancelled, shutting down");
                     Shutdown(1);
@@ -104,6 +107,8 @@ namespace V_Launcher
                 }
                 
                 MainWindow = mainWindow;
+                SystemEvents.SessionSwitch += OnSessionSwitch;
+                _sessionSwitchSubscribed = true;
 
                 // Main window lifecycle now controls application shutdown.
                 ShutdownMode = ShutdownMode.OnMainWindowClose;
@@ -129,6 +134,12 @@ namespace V_Launcher
             try
             {
                 _logger?.LogInformation("Application shutting down");
+
+                if (_sessionSwitchSubscribed)
+                {
+                    SystemEvents.SessionSwitch -= OnSessionSwitch;
+                    _sessionSwitchSubscribed = false;
+                }
 
                 // Handle application shutdown in the ViewModel
                 if (_mainViewModel != null)
@@ -238,6 +249,101 @@ namespace V_Launcher
                 _logger?.LogError(e.Exception, "Unobserved task exception");
                 e.SetObserved(); // Prevent the process from terminating
             };
+        }
+
+        private void OnSessionSwitch(object? sender, SessionSwitchEventArgs e)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.BeginInvoke(new Action(() => OnSessionSwitch(sender, e)));
+                return;
+            }
+
+            switch (e.Reason)
+            {
+                case SessionSwitchReason.SessionLock:
+                    HandleSessionLocked();
+                    break;
+                case SessionSwitchReason.SessionUnlock:
+                    HandleSessionUnlocked();
+                    break;
+            }
+        }
+
+        private void HandleSessionLocked()
+        {
+            if (this.MainWindow is not MainWindow mainWindow)
+            {
+                return;
+            }
+
+            _restoreWindowAfterUnlock = mainWindow.IsVisible && mainWindow.ShowInTaskbar;
+
+            if (mainWindow.IsVisible)
+            {
+                _logger?.LogInformation("Windows session locked, hiding the application until OTP is verified again");
+                mainWindow.MinimizeToTrayExternal(showNotification: false);
+            }
+        }
+
+        private async void HandleSessionUnlocked()
+        {
+            try
+            {
+                await RequireOtpAfterUnlockAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Failed to re-authenticate after Windows session unlock");
+                Shutdown(1);
+            }
+        }
+
+        private Task RequireOtpAfterUnlockAsync()
+        {
+            if (_totpService is null || !_totpService.IsOtpConfigured || _isSessionReauthenticationInProgress)
+            {
+                return Task.CompletedTask;
+            }
+
+            _isSessionReauthenticationInProgress = true;
+
+            try
+            {
+                _logger?.LogInformation("Windows session unlocked, requiring OTP re-authentication");
+
+                if (!ShowOtpVerificationDialog())
+                {
+                    _logger?.LogWarning("OTP re-authentication failed or was cancelled after unlock, shutting down");
+                    Shutdown(1);
+                    return Task.CompletedTask;
+                }
+
+                if (_restoreWindowAfterUnlock && this.MainWindow is MainWindow mainWindow)
+                {
+                    mainWindow.ShowWindow();
+                }
+
+                _restoreWindowAfterUnlock = false;
+                return Task.CompletedTask;
+            }
+            finally
+            {
+                _isSessionReauthenticationInProgress = false;
+            }
+        }
+
+        private bool ShowOtpVerificationDialog()
+        {
+            if (_totpService is null)
+            {
+                throw new InvalidOperationException("OTP service is not initialized.");
+            }
+
+            var verificationWindow = new OtpVerificationWindow(_totpService);
+            bool? verifyResult = verificationWindow.ShowDialog();
+
+            return verifyResult == true && verificationWindow.IsVerified;
         }
 
         private MessageBoxResult ShowErrorDialog(string title, string message, Exception? exception = null)

@@ -152,7 +152,7 @@ namespace V_Launcher
             base.OnClosed(e);
         }
 
-        private void MinimizeToTray()
+        private void MinimizeToTray(bool showNotification = true)
         {
             Hide();
             ShowInTaskbar = false;
@@ -163,7 +163,7 @@ namespace V_Launcher
                 _notifyIcon.Visible = true;
                 
                 // Show balloon tip on first minimize
-                if (!wasVisible)
+                if (showNotification && !wasVisible)
                 {
                     _notifyIcon.ShowBalloonTip(3000, "AD User Launcher", 
                         "Application minimized to system tray. Double-click the tray icon to restore.", 
@@ -210,9 +210,9 @@ namespace V_Launcher
         /// <summary>
         /// Public method to minimize to tray from external code
         /// </summary>
-        public void MinimizeToTrayExternal()
+        public void MinimizeToTrayExternal(bool showNotification = true)
         {
-            MinimizeToTray();
+            MinimizeToTray(showNotification);
         }
     }
 }
