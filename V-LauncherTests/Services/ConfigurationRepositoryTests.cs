@@ -1,4 +1,6 @@
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using V_Launcher.Models;
 using V_Launcher.Services;
@@ -455,6 +457,58 @@ public class ConfigurationRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task LoadConfigurationAsync_WhenSignedConfigurationAndBackupSharePayloadButInvalidSignature_RecoversConfiguration()
+    {
+        // Arrange
+        var configuration = new ApplicationConfiguration
+        {
+            ADAccounts =
+            [
+                new ADAccount
+                {
+                    Id = Guid.NewGuid(),
+                    DisplayName = "Repair Account",
+                    Username = "repairuser",
+                    Domain = "repairdomain"
+                }
+            ]
+        };
+
+        await _repository.SaveConfigurationAsync(configuration);
+
+        foreach (var filePath in new[] { _testConfigPath, _testBackupPath })
+        {
+            using var document = JsonDocument.Parse(await File.ReadAllTextAsync(filePath));
+            var payload = document.RootElement.GetProperty("configuration").Clone();
+
+            var repairedEnvelopeJson = JsonSerializer.Serialize(new
+            {
+                formatVersion = document.RootElement.GetProperty("formatVersion").GetString(),
+                configuration = payload,
+                integrity = new
+                {
+                    algorithm = document.RootElement.GetProperty("integrity").GetProperty("algorithm").GetString(),
+                    signature = new string('0', 64)
+                }
+            }, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            await File.WriteAllTextAsync(filePath, repairedEnvelopeJson);
+        }
+
+        // Act
+        var loadedConfiguration = await _repository.LoadConfigurationAsync();
+        var reloadedConfiguration = await _repository.LoadConfigurationAsync();
+
+        // Assert
+        Assert.Equal("repairuser", loadedConfiguration.ADAccounts[0].Username);
+        Assert.Equal("repairuser", reloadedConfiguration.ADAccounts[0].Username);
+    }
+
+    [Fact]
     public async Task LoadConfigurationAsync_WithLegacyPlainConfiguration_LoadsSuccessfully()
     {
         // Arrange
@@ -485,6 +539,65 @@ public class ConfigurationRepositoryTests : IDisposable
 
         // Assert
         Assert.Equal("legacyuser", loadedConfiguration.ADAccounts[0].Username);
+    }
+
+    [Fact]
+    public async Task LoadConfigurationAsync_WhenSignedConfigurationOmitsNewDefaultProperty_LoadsSuccessfully()
+    {
+        // Arrange
+        await _repository.SaveConfigurationAsync(new ApplicationConfiguration());
+
+        var integrityKeyPath = _testConfigPath + ".integrity.key";
+        var encryptedKey = await File.ReadAllBytesAsync(integrityKeyPath);
+        var key = ProtectedData.Unprotect(encryptedKey, null, DataProtectionScope.CurrentUser);
+
+        const string legacyConfigurationJson = """
+            {
+              "adAccounts": [],
+              "executableConfigurations": [],
+              "networkDriveConfigurations": [],
+              "settings": {
+                "startOnWindowsStart": false,
+                "startMinimized": false,
+                "minimizeOnClose": false
+              },
+              "isOtpEnabled": false,
+              "otpEncryptedSecret": null,
+              "version": "1.0",
+              "lastSaved": "2025-01-01T00:00:00Z"
+            }
+            """;
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        using var configurationDocument = JsonDocument.Parse(legacyConfigurationJson);
+        var normalizedLegacyConfigurationJson = JsonSerializer.Serialize(configurationDocument.RootElement, jsonOptions);
+
+        using var hmac = new HMACSHA256(key);
+        var signature = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(normalizedLegacyConfigurationJson)));
+
+        var envelopeJson = JsonSerializer.Serialize(new
+        {
+            formatVersion = "2.0",
+            configuration = configurationDocument.RootElement,
+            integrity = new
+            {
+                algorithm = "HMACSHA256",
+                signature
+            }
+        }, jsonOptions);
+
+        await File.WriteAllTextAsync(_testConfigPath, envelopeJson);
+
+        // Act
+        var loadedConfiguration = await _repository.LoadConfigurationAsync();
+
+        // Assert
+        Assert.Equal(LauncherOrderMode.Custom, loadedConfiguration.Settings.LauncherOrderMode);
     }
 
     [Fact]

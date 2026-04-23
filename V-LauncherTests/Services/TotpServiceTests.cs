@@ -163,6 +163,36 @@ public class TotpServiceTests
     }
 
     [Fact]
+    public async Task ResetOtpAsync_AfterEnable_ClearsStoredSecretAndDisablesOtp()
+    {
+        // Arrange
+        string secretKey = _totpService.GenerateSecretKey();
+        await _totpService.EnableOtpAsync(secretKey);
+
+        // Act
+        await _totpService.ResetOtpAsync();
+
+        // Assert
+        Assert.False(_configurationRepository.Configuration.IsOtpEnabled);
+        Assert.Null(_configurationRepository.Configuration.OtpEncryptedSecret);
+    }
+
+    [Fact]
+    public async Task ResetOtpAsync_AfterEnable_SetsIsOtpConfiguredFalse()
+    {
+        // Arrange
+        string secretKey = _totpService.GenerateSecretKey();
+        await _totpService.EnableOtpAsync(secretKey);
+        await _totpService.LoadConfigurationAsync();
+
+        // Act
+        await _totpService.ResetOtpAsync();
+
+        // Assert
+        Assert.False(_totpService.IsOtpConfigured);
+    }
+
+    [Fact]
     public async Task LoadConfigurationAsync_WhenOtpEnabled_SetsIsOtpConfiguredTrue()
     {
         // Arrange - enable OTP first

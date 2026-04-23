@@ -46,6 +46,11 @@ public interface ITotpService
     Task EnableOtpAsync(string secretKey);
 
     /// <summary>
+    /// Clears the persisted OTP secret while preserving the rest of the application configuration.
+    /// </summary>
+    Task ResetOtpAsync();
+
+    /// <summary>
     /// Loads the OTP configuration state from persistent storage.
     /// </summary>
     Task LoadConfigurationAsync();

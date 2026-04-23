@@ -6,6 +6,7 @@ using Microsoft.Win32;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using AppResources = V_Launcher.Properties.Resources;
 using V_Launcher.Services;
 using V_Launcher.ViewModels;
 using V_Launcher.Views;
@@ -24,6 +25,7 @@ namespace V_Launcher
         private bool _restoreWindowAfterUnlock;
         private bool _isSessionReauthenticationInProgress;
         private bool _sessionSwitchSubscribed;
+        private const string ResetOtpArgument = "--reset-otp";
 
         protected override async void OnStartup(StartupEventArgs e)
         {
@@ -46,8 +48,16 @@ namespace V_Launcher
                 _logger = _host.Services.GetRequiredService<ILogger<App>>();
                 _logger.LogInformation("Application starting up");
 
-                // Perform mandatory OTP authentication
                 _totpService = _host.Services.GetRequiredService<ITotpService>();
+
+                if (HasResetOtpArgument(e.Args))
+                {
+                    await ResetOtpAsync();
+                    Shutdown(0);
+                    return;
+                }
+
+                // Perform mandatory OTP authentication
                 await _totpService.LoadConfigurationAsync();
 
                 if (!_totpService.IsOtpConfigured)
@@ -346,7 +356,38 @@ namespace V_Launcher
             return verifyResult == true && verificationWindow.IsVerified;
         }
 
-        private MessageBoxResult ShowErrorDialog(string title, string message, Exception? exception = null)
+        private async Task ResetOtpAsync()
+        {
+            if (_totpService is null)
+            {
+                throw new InvalidOperationException("OTP service is not initialized.");
+            }
+
+            await _totpService.ResetOtpAsync();
+
+            System.Windows.MessageBox.Show(
+                GetResourceString("OtpResetSuccessMessage", "OTP has been reset. Start the app again to register a new authenticator entry."),
+                GetResourceString("OtpResetTitle", "OTP Reset"),
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Information);
+        }
+
+        private static bool HasResetOtpArgument(IEnumerable<string> args)
+        {
+            ArgumentNullException.ThrowIfNull(args);
+
+            return args.Any(argument => string.Equals(argument, ResetOtpArgument, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string GetResourceString(string resourceName, string fallback)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);
+            ArgumentException.ThrowIfNullOrWhiteSpace(fallback);
+
+            return AppResources.ResourceManager.GetString(resourceName, AppResources.Culture) ?? fallback;
+        }
+
+        private System.Windows.MessageBoxResult ShowErrorDialog(string title, string message, Exception? exception = null)
         {
             var detailedMessage = message;
             if (exception != null && !string.IsNullOrEmpty(exception.StackTrace))

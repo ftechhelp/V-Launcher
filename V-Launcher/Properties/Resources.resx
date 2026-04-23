@@ -120,4 +120,10 @@
   <data name="UpdateInstallFailedMessage" xml:space="preserve">
     <value>Failed to start update installer.</value>
   </data>
+  <data name="OtpResetTitle" xml:space="preserve">
+    <value>OTP Reset</value>
+  </data>
+  <data name="OtpResetSuccessMessage" xml:space="preserve">
+    <value>OTP has been reset. Start the app again to register a new authenticator entry.</value>
+  </data>
 </root>

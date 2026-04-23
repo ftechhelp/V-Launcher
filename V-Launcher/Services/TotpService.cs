@@ -118,6 +118,28 @@ public class TotpService : ITotpService
     }
 
     /// <inheritdoc/>
+    public async Task ResetOtpAsync()
+    {
+        try
+        {
+            var config = await _configurationRepository.LoadConfigurationAsync();
+            config.OtpEncryptedSecret = null;
+            config.IsOtpEnabled = false;
+            await _configurationRepository.SaveConfigurationAsync(config);
+
+            _encryptedSecret = null;
+            _isLoaded = true;
+
+            _logger.LogInformation("OTP authentication reset successfully");
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Failed to reset OTP authentication");
+            throw;
+        }
+    }
+
+    /// <inheritdoc/>
     public async Task LoadConfigurationAsync()
     {
         try
