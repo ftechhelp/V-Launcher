@@ -11,6 +11,7 @@ public class ApplicationSettings : INotifyPropertyChanged
     private bool _startOnWindowsStart = false;
     private bool _startMinimized = false;
     private bool _minimizeOnClose = false;
+    private bool _requireOtpOnUnlock = true;
     private LauncherOrderMode _launcherOrderMode = LauncherOrderMode.Custom;
 
     /// <summary>
@@ -62,6 +63,23 @@ public class ApplicationSettings : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// Whether OTP must be re-entered after the Windows session is locked and unlocked.
+    /// OTP is always required at application launch regardless of this setting.
+    /// </summary>
+    public bool RequireOtpOnUnlock
+    {
+        get => _requireOtpOnUnlock;
+        set
+        {
+            if (_requireOtpOnUnlock != value)
+            {
+                _requireOtpOnUnlock = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>
     /// Controls how launcher tiles are ordered.
     /// </summary>
     public LauncherOrderMode LauncherOrderMode
@@ -95,6 +113,7 @@ public class ApplicationSettings : INotifyPropertyChanged
             StartOnWindowsStart = StartOnWindowsStart,
             StartMinimized = StartMinimized,
             MinimizeOnClose = MinimizeOnClose,
+            RequireOtpOnUnlock = RequireOtpOnUnlock,
             LauncherOrderMode = LauncherOrderMode
         };
     }
@@ -110,6 +129,7 @@ public class ApplicationSettings : INotifyPropertyChanged
                StartOnWindowsStart == settings.StartOnWindowsStart &&
                StartMinimized == settings.StartMinimized &&
                MinimizeOnClose == settings.MinimizeOnClose &&
+               RequireOtpOnUnlock == settings.RequireOtpOnUnlock &&
                LauncherOrderMode == settings.LauncherOrderMode;
     }
 
@@ -119,6 +139,6 @@ public class ApplicationSettings : INotifyPropertyChanged
     /// <returns>Hash code based on all property values</returns>
     public override int GetHashCode()
     {
-        return HashCode.Combine(StartOnWindowsStart, StartMinimized, MinimizeOnClose, LauncherOrderMode);
+        return HashCode.Combine(StartOnWindowsStart, StartMinimized, MinimizeOnClose, RequireOtpOnUnlock, LauncherOrderMode);
     }
 }

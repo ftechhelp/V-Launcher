@@ -517,6 +517,11 @@ public partial class SettingsViewModel : ViewModelBase
                 var status = Settings.MinimizeOnClose ? "enabled" : "disabled";
                 SetStatus($"Minimize on close {status}");
             }
+            else if (e.PropertyName == nameof(ApplicationSettings.RequireOtpOnUnlock))
+            {
+                var status = Settings.RequireOtpOnUnlock ? "enabled" : "disabled";
+                SetStatus($"OTP on unlock {status}");
+            }
 
             // Auto-save the settings
             await SaveSettingsAsync();

@@ -193,9 +193,15 @@
                               Style="{StaticResource SettingsCheckBoxStyle}"
                               Margin="0,0,15,0"/>
                     
-                    <CheckBox Content="Minimize on Close" 
+                    <CheckBox Content="Minimize on Close"
                               IsChecked="{Binding SettingsViewModel.Settings.MinimizeOnClose, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                              Style="{StaticResource SettingsCheckBoxStyle}"/>
+                              Style="{StaticResource SettingsCheckBoxStyle}"
+                              Margin="0,0,15,0"/>
+
+                    <CheckBox Content="Require OTP on Unlock"
+                              IsChecked="{Binding SettingsViewModel.Settings.RequireOtpOnUnlock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              Style="{StaticResource SettingsCheckBoxStyle}"
+                              ToolTip="OTP is always required at launch. When unchecked, locking/unlocking Windows will not prompt for OTP again."/>
 
                     <Button Content="Check Updates"
                             Command="{Binding CheckForUpdatesCommand}"

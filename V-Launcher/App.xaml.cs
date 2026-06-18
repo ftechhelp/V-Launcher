@@ -287,6 +287,13 @@ namespace V_Launcher
                 return;
             }
 
+            if (!IsOtpRequiredOnUnlock())
+            {
+                // OTP re-authentication after unlock is disabled, so leave the window as-is.
+                _restoreWindowAfterUnlock = false;
+                return;
+            }
+
             _restoreWindowAfterUnlock = mainWindow.IsVisible && mainWindow.ShowInTaskbar;
 
             if (mainWindow.IsVisible)
@@ -316,6 +323,12 @@ namespace V_Launcher
                 return Task.CompletedTask;
             }
 
+            if (!IsOtpRequiredOnUnlock())
+            {
+                _logger?.LogInformation("OTP re-authentication after unlock is disabled by settings, skipping");
+                return Task.CompletedTask;
+            }
+
             _isSessionReauthenticationInProgress = true;
 
             try
@@ -341,6 +354,12 @@ namespace V_Launcher
             {
                 _isSessionReauthenticationInProgress = false;
             }
+        }
+
+        private bool IsOtpRequiredOnUnlock()
+        {
+            // Default to requiring OTP when settings are unavailable, to fail closed (more secure).
+            return _mainViewModel?.SettingsViewModel?.Settings?.RequireOtpOnUnlock ?? true;
         }
 
         private bool ShowOtpVerificationDialog()
