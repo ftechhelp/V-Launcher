@@ -120,10 +120,11 @@ public class ApplicationUpdateServiceTests
             InstallerChecksumUrl: null);
 
         // Act
-        var started = await service.InstallUpdateAsync(checkResult);
+        var result = await service.InstallUpdateAsync(checkResult);
 
         // Assert
-        Assert.False(started);
+        Assert.False(result.Started);
+        Assert.Equal(UpdateInstallFailureReason.NotInstallable, result.Reason);
     }
 
     [Fact]
@@ -159,10 +160,11 @@ public class ApplicationUpdateServiceTests
             InstallerChecksumUrl: null);
 
         // Act
-        var started = await service.InstallUpdateAsync(checkResult);
+        var result = await service.InstallUpdateAsync(checkResult);
 
         // Assert
-        Assert.False(started);
+        Assert.False(result.Started);
+        Assert.Equal(UpdateInstallFailureReason.ChecksumMismatch, result.Reason);
     }
 
     [Fact]
@@ -184,11 +186,58 @@ public class ApplicationUpdateServiceTests
             };
         }));
 
-        var service = new ApplicationUpdateService(
-            httpClient,
-            new TestLogger<ApplicationUpdateService>(),
-            _ => false,
-            _ => new Process());
+        var checkResult = new UpdateCheckResult(
+            IsUpdateAvailable: true,
+            CurrentVersion: new Version(1, 0, 0, 0),
+            LatestVersion: new Version(2, 0, 0, 0),
+            LatestTag: "v2.0.0",
+            InstallerUrl: installerUrl,
+            InstallerSha256: Convert.ToHexString(SHA256.HashData(installerBytes)),
+            InstallerChecksumUrl: null);
+
+        var previousValue = Environment.GetEnvironmentVariable("VLAUNCHER_REQUIRE_INSTALLER_SIGNATURE");
+        try
+        {
+            // Signature verification is opt-in; enable it so the failing verifier is exercised.
+            Environment.SetEnvironmentVariable("VLAUNCHER_REQUIRE_INSTALLER_SIGNATURE", "true");
+
+            var service = new ApplicationUpdateService(
+                httpClient,
+                new TestLogger<ApplicationUpdateService>(),
+                _ => false,
+                _ => new Process());
+
+            // Act
+            var result = await service.InstallUpdateAsync(checkResult);
+
+            // Assert
+            Assert.False(result.Started);
+            Assert.Equal(UpdateInstallFailureReason.SignatureVerificationFailed, result.Reason);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("VLAUNCHER_REQUIRE_INSTALLER_SIGNATURE", previousValue);
+        }
+    }
+
+    [Fact]
+    public async Task InstallUpdateAsync_WhenSignatureNotRequired_ShouldStartUnsignedInstaller()
+    {
+        // Arrange
+        const string installerUrl = "https://example.test/V-Launcher-setup.exe";
+        var installerBytes = Encoding.UTF8.GetBytes("installer-bits");
+
+        using var httpClient = new HttpClient(new RoutedHttpMessageHandler(request =>
+        {
+            return request.RequestUri?.AbsoluteUri switch
+            {
+                installerUrl => new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new ByteArrayContent(installerBytes)
+                },
+                _ => new HttpResponseMessage(HttpStatusCode.NotFound)
+            };
+        }));
 
         var checkResult = new UpdateCheckResult(
             IsUpdateAvailable: true,
@@ -199,11 +248,31 @@ public class ApplicationUpdateServiceTests
             InstallerSha256: Convert.ToHexString(SHA256.HashData(installerBytes)),
             InstallerChecksumUrl: null);
 
-        // Act
-        var started = await service.InstallUpdateAsync(checkResult);
+        var signatureVerifierWasCalled = false;
+        var previousValue = Environment.GetEnvironmentVariable("VLAUNCHER_REQUIRE_INSTALLER_SIGNATURE");
+        try
+        {
+            Environment.SetEnvironmentVariable("VLAUNCHER_REQUIRE_INSTALLER_SIGNATURE", "false");
 
-        // Assert
-        Assert.False(started);
+            // Signature verifier would reject the file, but it must be bypassed entirely.
+            var service = new ApplicationUpdateService(
+                httpClient,
+                new TestLogger<ApplicationUpdateService>(),
+                _ => { signatureVerifierWasCalled = true; return false; },
+                _ => new Process());
+
+            // Act
+            var result = await service.InstallUpdateAsync(checkResult);
+
+            // Assert
+            Assert.True(result.Started);
+            Assert.Equal(UpdateInstallFailureReason.None, result.Reason);
+            Assert.False(signatureVerifierWasCalled);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("VLAUNCHER_REQUIRE_INSTALLER_SIGNATURE", previousValue);
+        }
     }
 
     [Fact]
@@ -241,10 +310,11 @@ public class ApplicationUpdateServiceTests
             InstallerChecksumUrl: null);
 
         // Act
-        var started = await service.InstallUpdateAsync(checkResult);
+        var result = await service.InstallUpdateAsync(checkResult);
 
         // Assert
-        Assert.True(started);
+        Assert.True(result.Started);
+        Assert.Equal(UpdateInstallFailureReason.None, result.Reason);
     }
 
     private sealed class StubHttpMessageHandler(HttpStatusCode statusCode, string responseBody) : HttpMessageHandler

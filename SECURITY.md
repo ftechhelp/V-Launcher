@@ -87,9 +87,11 @@ byte[] decryptedData = ProtectedData.Unprotect(
 
 - Updates are discovered from GitHub releases for the configured repository.
 - Installer assets must provide SHA-256 integrity metadata.
-- Downloaded installers must match the expected SHA-256 value before launch.
-- Downloaded installers must pass Authenticode signature validation before launch.
-- Optional signer subject or certificate thumbprint allow-lists can further restrict trusted installers.
+- Downloaded installers must match the expected SHA-256 value before launch. This check is always enforced and cannot be disabled.
+- Authenticode signature validation is **opt-in** and disabled by default, because the published release installers are not code-signed. Set `VLAUNCHER_REQUIRE_INSTALLER_SIGNATURE=true` to require a valid signature before launch.
+- When signature validation is enabled, optional signer subject (`VLAUNCHER_ALLOWED_SIGNER_SUBJECTS`) or certificate thumbprint (`VLAUNCHER_ALLOWED_SIGNER_THUMBPRINTS`) allow-lists can further restrict which installers are trusted.
+
+> **Note:** With signature validation off (the default), update integrity rests on the SHA-256 checksum published by GitHub for the release asset, transport security (HTTPS to GitHub), and the trust placed in the configured release repository. Enable `VLAUNCHER_REQUIRE_INSTALLER_SIGNATURE=true` in environments that distribute code-signed installers for defense in depth.
 
 ### Windows User Context Isolation
 

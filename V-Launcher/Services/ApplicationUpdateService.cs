@@ -31,6 +31,7 @@ public class ApplicationUpdateService : IApplicationUpdateService
     private readonly string? _accessToken;
     private readonly HashSet<string> _allowedSignerSubjects;
     private readonly HashSet<string> _allowedSignerThumbprints;
+    private readonly bool _requireInstallerSignature;
     private readonly Func<string, bool> _installerSignatureVerifier;
     private readonly Func<ProcessStartInfo, Process?> _processStarter;
 
@@ -58,6 +59,11 @@ public class ApplicationUpdateService : IApplicationUpdateService
             .Select(NormalizeThumbprint)
             .Where(static thumbprint => !string.IsNullOrWhiteSpace(thumbprint))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Authenticode verification is off by default because release installers are not code-signed.
+        // Set VLAUNCHER_REQUIRE_INSTALLER_SIGNATURE=true to require a trusted signature.
+        // SHA-256 checksum verification always remains mandatory regardless of this setting.
+        _requireInstallerSignature = GetBooleanEnvironmentValue("VLAUNCHER_REQUIRE_INSTALLER_SIGNATURE", defaultValue: false);
 
         _installerSignatureVerifier = installerSignatureVerifier ?? VerifyInstallerSignature;
         _processStarter = processStarter ?? Process.Start;
@@ -138,13 +144,13 @@ public class ApplicationUpdateService : IApplicationUpdateService
     }
 
     /// <inheritdoc />
-    public async Task<bool> InstallUpdateAsync(UpdateCheckResult updateCheckResult, CancellationToken cancellationToken = default)
+    public async Task<UpdateInstallResult> InstallUpdateAsync(UpdateCheckResult updateCheckResult, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(updateCheckResult);
 
         if (!updateCheckResult.IsUpdateAvailable || string.IsNullOrWhiteSpace(updateCheckResult.InstallerUrl))
         {
-            return false;
+            return UpdateInstallResult.Failed(UpdateInstallFailureReason.NotInstallable);
         }
 
         string? installerPath = null;
@@ -155,7 +161,7 @@ public class ApplicationUpdateService : IApplicationUpdateService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Installer download failed with status code {StatusCode}", response.StatusCode);
-                return false;
+                return UpdateInstallResult.Failed(UpdateInstallFailureReason.DownloadFailed);
             }
 
             installerPath = BuildInstallerPath(updateCheckResult.InstallerUrl);
@@ -171,7 +177,7 @@ public class ApplicationUpdateService : IApplicationUpdateService
             {
                 _logger.LogWarning("Installer metadata did not provide a usable SHA-256 checksum.");
                 DeleteInstallerIfPresent(installerPath);
-                return false;
+                return UpdateInstallResult.Failed(UpdateInstallFailureReason.MissingChecksum);
             }
 
             var actualSha256 = await ComputeFileSha256Async(installerPath, cancellationToken);
@@ -179,14 +185,19 @@ public class ApplicationUpdateService : IApplicationUpdateService
             {
                 _logger.LogWarning("Installer checksum verification failed for path {InstallerPath}", installerPath);
                 DeleteInstallerIfPresent(installerPath);
-                return false;
+                return UpdateInstallResult.Failed(UpdateInstallFailureReason.ChecksumMismatch);
             }
 
-            if (!_installerSignatureVerifier(installerPath))
+            if (_requireInstallerSignature && !_installerSignatureVerifier(installerPath))
             {
                 _logger.LogWarning("Installer signature verification failed for path {InstallerPath}", installerPath);
                 DeleteInstallerIfPresent(installerPath);
-                return false;
+                return UpdateInstallResult.Failed(UpdateInstallFailureReason.SignatureVerificationFailed);
+            }
+
+            if (!_requireInstallerSignature)
+            {
+                _logger.LogWarning("Installer signature verification skipped because VLAUNCHER_REQUIRE_INSTALLER_SIGNATURE is disabled for path {InstallerPath}", installerPath);
             }
 
             var processStartInfo = new ProcessStartInfo
@@ -196,15 +207,14 @@ public class ApplicationUpdateService : IApplicationUpdateService
             };
 
             var process = _processStarter(processStartInfo);
-            var started = process is not null;
-
-            if (!started)
+            if (process is null)
             {
                 _logger.LogWarning("Installer process failed to start for path {InstallerPath}", installerPath);
                 DeleteInstallerIfPresent(installerPath);
+                return UpdateInstallResult.Failed(UpdateInstallFailureReason.InstallerLaunchFailed);
             }
 
-            return started;
+            return UpdateInstallResult.Success;
         }
         catch (OperationCanceledException)
         {
@@ -214,7 +224,7 @@ public class ApplicationUpdateService : IApplicationUpdateService
         {
             _logger.LogError(ex, "Failed to download or start the installer update.");
             DeleteInstallerIfPresent(installerPath);
-            return false;
+            return UpdateInstallResult.Failed(UpdateInstallFailureReason.UnexpectedError);
         }
     }
 
@@ -432,6 +442,28 @@ public class ApplicationUpdateService : IApplicationUpdateService
     {
         var value = Environment.GetEnvironmentVariable(variableName);
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static bool GetBooleanEnvironmentValue(string variableName, bool defaultValue)
+    {
+        var value = GetOptionalEnvironmentValue(variableName);
+        if (value is null)
+        {
+            return defaultValue;
+        }
+
+        if (bool.TryParse(value, out var parsedBool))
+        {
+            return parsedBool;
+        }
+
+        // Accept common truthy/falsy spellings (0/1, yes/no, on/off).
+        return value.ToLowerInvariant() switch
+        {
+            "1" or "yes" or "on" => true,
+            "0" or "no" or "off" => false,
+            _ => defaultValue
+        };
     }
 
     private void DeleteInstallerIfPresent(string? installerPath)

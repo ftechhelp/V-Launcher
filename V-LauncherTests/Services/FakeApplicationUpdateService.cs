@@ -17,8 +17,8 @@ public sealed class FakeApplicationUpdateService : IApplicationUpdateService
             InstallerChecksumUrl: null));
     }
 
-    public Task<bool> InstallUpdateAsync(UpdateCheckResult updateCheckResult, CancellationToken cancellationToken = default)
+    public Task<UpdateInstallResult> InstallUpdateAsync(UpdateCheckResult updateCheckResult, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(false);
+        return Task.FromResult(UpdateInstallResult.Failed(UpdateInstallFailureReason.NotInstallable));
     }
 }

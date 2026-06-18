@@ -45,7 +45,7 @@ V-Launcher is a secure WPF application that enables users to launch applications
 - **GitHub Release Checks**: Checks GitHub for the latest tagged release
 - **Manual Update Trigger**: "Check Updates" button in the main window
 - **Startup Update Check**: Automatically checks for updates during app startup
-- **Verified Installer Launch**: Downloads and starts the update installer only after checksum and signature verification succeeds
+- **Verified Installer Launch**: Downloads and starts the update installer only after SHA-256 checksum verification succeeds (and Authenticode signature verification when `VLAUNCHER_REQUIRE_INSTALLER_SIGNATURE=true`)
 
 ## System Requirements
 
@@ -229,8 +229,9 @@ V-Launcher supports optional environment variables for update checks:
 - `VLAUNCHER_GITHUB_API_BASE` (default: `https://api.github.com`)
 - `VLAUNCHER_GITHUB_REPOSITORY` (default: `ftechhelp/V-Launcher`)
 - `VLAUNCHER_GITHUB_TOKEN` (optional, for private repositories or higher rate limits)
-- `VLAUNCHER_ALLOWED_SIGNER_SUBJECTS` (optional, semicolon/comma-separated signer subject filters)
-- `VLAUNCHER_ALLOWED_SIGNER_THUMBPRINTS` (optional, semicolon/comma-separated signer certificate thumbprints)
+- `VLAUNCHER_REQUIRE_INSTALLER_SIGNATURE` (optional, default `false`; set to `true` to require a valid Authenticode signature on the installer before launch)
+- `VLAUNCHER_ALLOWED_SIGNER_SUBJECTS` (optional, semicolon/comma-separated signer subject filters; only applies when signature checking is enabled)
+- `VLAUNCHER_ALLOWED_SIGNER_THUMBPRINTS` (optional, semicolon/comma-separated signer certificate thumbprints; only applies when signature checking is enabled)
 
 ## Security Information
 
@@ -255,8 +256,8 @@ V-Launcher supports optional environment variables for update checks:
 
 ### Update Security
 - **Release Source**: Updates are discovered from GitHub releases for `ftechhelp/V-Launcher`
-- **Checksum Verification**: Downloaded installers must match published SHA-256 metadata before launch
-- **Signature Verification**: Downloaded installers must have a valid Authenticode signature before launch
+- **Checksum Verification**: Downloaded installers must match published SHA-256 metadata before launch (always enforced)
+- **Signature Verification**: Authenticode signature checking is **opt-in and off by default**, since release installers are not code-signed. Set `VLAUNCHER_REQUIRE_INSTALLER_SIGNATURE=true` to require a valid signature before launch
 
 ### Security Best Practices
 - **Regular Password Updates**: Update stored passwords when AD passwords change
@@ -325,7 +326,8 @@ V-Launcher supports optional environment variables for update checks:
 2. **Repository/Tag Format**: Confirm the configured repository publishes semantic version tags (e.g., `v1.2.3`)
 3. **Private Repository**: Set `VLAUNCHER_GITHUB_TOKEN` when the release API requires auth
 4. **Installer Asset**: Ensure the release contains a downloadable `.exe` or `.msi` asset
-5. **Integrity Metadata**: Ensure the installer asset publishes SHA-256 metadata and the installer is Authenticode-signed
+5. **Integrity Metadata**: Ensure the installer asset publishes SHA-256 metadata (GitHub populates the asset `digest` automatically, or attach a `<asset>.sha256` companion file)
+6. **Signature (if enabled)**: Only when `VLAUNCHER_REQUIRE_INSTALLER_SIGNATURE=true`, ensure the installer is Authenticode-signed with a trusted certificate; otherwise the install is rejected. By default signature checking is off
 
 #### Windows Startup Issues
 **Problem**: Application doesn't start with Windows despite setting enabled

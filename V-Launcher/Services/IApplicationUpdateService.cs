@@ -17,6 +17,6 @@ public interface IApplicationUpdateService
     /// </summary>
     /// <param name="updateCheckResult">The update check result that contains installer details.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>True when installation process was started.</returns>
-    Task<bool> InstallUpdateAsync(UpdateCheckResult updateCheckResult, CancellationToken cancellationToken = default);
+    /// <returns>The outcome of the install attempt, including a failure reason when it did not start.</returns>
+    Task<UpdateInstallResult> InstallUpdateAsync(UpdateCheckResult updateCheckResult, CancellationToken cancellationToken = default);
 }

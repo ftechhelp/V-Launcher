@@ -433,10 +433,10 @@ public partial class MainViewModel : ViewModelBase
                 return;
             }
 
-            var installerStarted = await _applicationUpdateService.InstallUpdateAsync(updateResult);
-            if (!installerStarted)
+            var installResult = await _applicationUpdateService.InstallUpdateAsync(updateResult);
+            if (!installResult.Started)
             {
-                SetError(UpdateResources.UpdateInstallFailedMessage);
+                SetError(GetInstallFailureMessage(installResult.Reason));
                 return;
             }
 
@@ -453,6 +453,19 @@ public partial class MainViewModel : ViewModelBase
             SetError(UpdateResources.UpdateCheckFailedMessage);
         }
     }
+
+    /// <summary>
+    /// Maps an install failure reason to a user-facing message.
+    /// </summary>
+    private static string GetInstallFailureMessage(UpdateInstallFailureReason reason) => reason switch
+    {
+        UpdateInstallFailureReason.DownloadFailed => UpdateResources.UpdateInstallDownloadFailedMessage,
+        UpdateInstallFailureReason.MissingChecksum => UpdateResources.UpdateInstallMissingChecksumMessage,
+        UpdateInstallFailureReason.ChecksumMismatch => UpdateResources.UpdateInstallChecksumMismatchMessage,
+        UpdateInstallFailureReason.SignatureVerificationFailed => UpdateResources.UpdateInstallUnsignedMessage,
+        UpdateInstallFailureReason.InstallerLaunchFailed => UpdateResources.UpdateInstallLaunchFailedMessage,
+        _ => UpdateResources.UpdateInstallFailedMessage
+    };
 
     /// <summary>
     /// Handles startup behavior based on application settings
